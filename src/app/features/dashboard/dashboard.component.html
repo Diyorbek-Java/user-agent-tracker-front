@@ -1,0 +1,186 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <header class="dashboard-header">
+    <div class="header-left">
+      <h1>Employee Monitoring Dashboard</h1>
+      <p *ngIf="currentUser">Welcome, {{ currentUser.full_name }}</p>
+
+      <!-- User Selector for Admin/Manager -->
+      <div *ngIf="isAdminOrManager" class="user-selector-container">
+        <label for="userSelect">Viewing data for:</label>
+        <select
+          id="userSelect"
+          class="user-select"
+          [(ngModel)]="selectedUserId"
+          (change)="onUserChange($event)"
+        >
+          <option [value]="currentUser?.id">{{ currentUser?.full_name }} (Me)</option>
+          <option *ngFor="let user of availableUsers" [value]="user.id">
+            {{ user.full_name }} - {{ user.role }} ({{ user.department || 'N/A' }})
+          </option>
+        </select>
+      </div>
+    </div>
+    <div class="header-right">
+      <button *ngIf="isAdminOrManager" class="btn-create" (click)="navigateToUserManagement()">+ Create User</button>
+      <button class="btn-secondary" (click)="navigateToProfile()">Profile</button>
+      <button class="btn-logout" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading dashboard...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <p>{{ error }}</p>
+    <button class="btn-primary" (click)="loadDashboardData()">Retry</button>
+  </div>
+
+  <!-- Dashboard Content -->
+  <div *ngIf="!loading && !error && dashboardStats" class="dashboard-content">
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #4CAF50;">
+          <span>📊</span>
+        </div>
+        <div class="stat-info">
+          <h3>{{ dashboardStats.total_sessions }}</h3>
+          <p>Total Sessions</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #2196F3;">
+          <span>⏱️</span>
+        </div>
+        <div class="stat-info">
+          <h3>{{ formatHours(dashboardStats.today_active_time) }}</h3>
+          <p>Today's Active Time</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #FF9800;">
+          <span>📈</span>
+        </div>
+        <div class="stat-info">
+          <h3>{{ dashboardStats.productivity_score }}%</h3>
+          <p>Productivity Score</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background: #9C27B0;">
+          <span>🔥</span>
+        </div>
+        <div class="stat-info">
+          <h3>{{ formatHours(dashboardStats.week_active_time) }}</h3>
+          <p>Week Active Time</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+      <!-- Productivity Chart -->
+      <div class="card productivity-card">
+        <div class="card-header">
+          <h2>7-Day Productivity Trend</h2>
+        </div>
+        <div class="card-body">
+          <div class="productivity-chart">
+            <div *ngFor="let day of productivityReport" class="productivity-bar-container">
+              <div class="productivity-bar-wrapper">
+                <div
+                  class="productivity-bar"
+                  [style.height.%]="day.productivity_score"
+                  [style.background]="day.productivity_score >= 75 ? '#4CAF50' : day.productivity_score >= 50 ? '#FFC107' : '#F44336'"
+                >
+                </div>
+              </div>
+              <div class="productivity-label">
+                <div class="day-label">{{ formatDate(day.date) }}</div>
+                <div class="score-label">{{ day.productivity_score }}%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Applications -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Top Applications (This Week)</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="dashboardStats.top_applications.length === 0" class="empty-state">
+            <p>No application data available</p>
+          </div>
+          <div *ngFor="let app of dashboardStats.top_applications" class="app-item">
+            <div class="app-info">
+              <span class="app-icon">💻</span>
+              <div>
+                <div class="app-name">{{ app.name }}</div>
+                <div class="app-stats">{{ formatHours(app.duration) }} • {{ app.count }} sessions</div>
+              </div>
+            </div>
+            <div class="app-duration">{{ formatHours(app.duration) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Sessions -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Recent Sessions</h2>
+          <button class="btn-link" (click)="navigateToSessions()">View All</button>
+        </div>
+        <div class="card-body">
+          <div *ngIf="dashboardStats.recent_sessions.length === 0" class="empty-state">
+            <p>No recent sessions</p>
+          </div>
+          <div *ngFor="let session of dashboardStats.recent_sessions" class="session-item">
+            <div class="session-info">
+              <div class="session-time">{{ formatTime(session.start_time) }}</div>
+              <div class="session-status">
+                <span [class.active]="session.is_active" [class.inactive]="!session.is_active">
+                  {{ session.is_active ? 'Active' : 'Completed' }}
+                </span>
+              </div>
+            </div>
+            <div class="session-duration">{{ formatHours(session.duration_hours) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Summary -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Activity Summary</h2>
+          <button class="btn-link" (click)="navigateToActivities()">View Details</button>
+        </div>
+        <div class="card-body">
+          <div class="summary-item">
+            <span class="summary-label">Total Activities</span>
+            <span class="summary-value">{{ dashboardStats.total_activities }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Total Active Time</span>
+            <span class="summary-value">{{ formatHours(dashboardStats.total_active_time) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Average Session Time</span>
+            <span class="summary-value">
+              {{ dashboardStats.total_sessions > 0 ? formatHours(dashboardStats.total_active_time / dashboardStats.total_sessions) : '0h 0m' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

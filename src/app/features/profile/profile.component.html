@@ -1,0 +1,133 @@
+<div class="profile-container">
+  <!-- Header -->
+  <header class="profile-header">
+    <div class="header-left">
+      <button class="btn-back" (click)="goBack()">← Back to Dashboard</button>
+      <h1>My Profile</h1>
+    </div>
+    <div class="header-right">
+      <button class="btn-logout" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading profile...</p>
+  </div>
+
+  <!-- Profile Content -->
+  <div *ngIf="!loading && profile" class="profile-content">
+    <!-- Success Message -->
+    <div *ngIf="successMessage" class="alert alert-success">
+      {{ successMessage }}
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="error" class="alert alert-error">
+      {{ error }}
+    </div>
+
+    <!-- Profile Card -->
+    <div class="profile-card">
+      <div class="profile-header-section">
+        <div class="profile-avatar">
+          <span>{{ profile.full_name.charAt(0).toUpperCase() }}</span>
+        </div>
+        <div class="profile-title">
+          <h2>{{ profile.full_name }}</h2>
+          <span class="role-badge" [class.admin]="profile.role === 'ADMIN'"
+                [class.manager]="profile.role === 'MANAGER'"
+                [class.employee]="profile.role === 'EMPLOYEE'">
+            {{ profile.role }}
+          </span>
+        </div>
+      </div>
+
+      <!-- View Mode -->
+      <div *ngIf="!isEditing" class="profile-details">
+        <div class="detail-row">
+          <label>Employee ID:</label>
+          <span>{{ profile.employee_id }}</span>
+        </div>
+
+        <div class="detail-row">
+          <label>Email:</label>
+          <span>{{ profile.email }}</span>
+        </div>
+
+        <div class="detail-row">
+          <label>Full Name:</label>
+          <span>{{ profile.full_name }}</span>
+        </div>
+
+        <div class="detail-row">
+          <label>Department:</label>
+          <span>{{ profile.department || 'Not set' }}</span>
+        </div>
+
+        <div class="detail-row">
+          <label>Position:</label>
+          <span>{{ profile.position || 'Not set' }}</span>
+        </div>
+
+        <div class="detail-row">
+          <label>Computer Name:</label>
+          <span>{{ profile.computer_name || 'Not set' }}</span>
+        </div>
+
+        <div class="detail-row">
+          <label>Last Login:</label>
+          <span>{{ profile.last_login ? (profile.last_login | date: 'medium') : 'Never' }}</span>
+        </div>
+
+        <div class="detail-row">
+          <label>Member Since:</label>
+          <span>{{ profile.date_joined | date: 'medium' }}</span>
+        </div>
+
+        <div class="profile-actions">
+          <button class="btn-primary" (click)="startEdit()">Edit Profile</button>
+        </div>
+      </div>
+
+      <!-- Edit Mode -->
+      <div *ngIf="isEditing" class="profile-edit-form">
+        <div class="form-group">
+          <label for="fullName">Full Name:</label>
+          <input
+            type="text"
+            id="fullName"
+            [(ngModel)]="editedProfile.full_name"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="department">Department:</label>
+          <input
+            type="text"
+            id="department"
+            [(ngModel)]="editedProfile.department"
+            class="form-control"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="position">Position:</label>
+          <input
+            type="text"
+            id="position"
+            [(ngModel)]="editedProfile.position"
+            class="form-control"
+          />
+        </div>
+
+        <div class="profile-actions">
+          <button class="btn-primary" (click)="saveProfile()">Save Changes</button>
+          <button class="btn-secondary" (click)="cancelEdit()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
