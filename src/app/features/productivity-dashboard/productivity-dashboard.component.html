@@ -1,0 +1,361 @@
+<div class="productivity-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <button class="btn-back" (click)="navigateBack()">← Back</button>
+      <div>
+        <h1>Productivity Dashboard</h1>
+        <p *ngIf="dashboard">{{ dashboard.period.from }} to {{ dashboard.period.to }}</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <select class="filter-select" [(ngModel)]="selectedDays" (change)="onDaysChange()">
+        <option *ngFor="let opt of daysOptions" [value]="opt.value">{{ opt.label }}</option>
+      </select>
+      <button class="btn-primary" (click)="navigateToAppCategories()">Manage Categories</button>
+      <button class="btn-logout" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <button
+      class="tab-btn"
+      [class.active]="viewMode === 'overview'"
+      (click)="setViewMode('overview')"
+    >Overview</button>
+    <button
+      class="tab-btn"
+      [class.active]="viewMode === 'employees'"
+      (click)="setViewMode('employees')"
+    >All Employees</button>
+    <button
+      *ngIf="selectedEmployee"
+      class="tab-btn"
+      [class.active]="viewMode === 'detail'"
+      (click)="setViewMode('detail')"
+    >{{ selectedEmployee.user.name }}</button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading productivity data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <p>{{ error }}</p>
+    <button class="btn-primary" (click)="loadDashboard()">Retry</button>
+  </div>
+
+  <!-- Overview View -->
+  <div *ngIf="!loading && !error && dashboard && viewMode === 'overview'" class="content">
+    <!-- Summary Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon icon-blue">
+          <span>👥</span>
+        </div>
+        <div class="stat-info">
+          <h3>{{ dashboard.summary.total_employees }}</h3>
+          <p>Total Employees</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-green">
+          <span>✓</span>
+        </div>
+        <div class="stat-info">
+          <h3>{{ dashboard.summary.productive_employees }}</h3>
+          <p>Productive Employees</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-purple">
+          <span>📊</span>
+        </div>
+        <div class="stat-info">
+          <h3>{{ dashboard.summary.average_productivity }}%</h3>
+          <p>Average Productivity</p>
+        </div>
+      </div>
+      <div class="stat-card clickable" (click)="setViewMode('employees')">
+        <div class="stat-icon icon-orange">
+          <span>👁️</span>
+        </div>
+        <div class="stat-info">
+          <h3>View All</h3>
+          <p>Employee Details →</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Top Performers -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🏆 Top Performers</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="dashboard.top_performers.length === 0" class="empty-state">
+            <p>No data available</p>
+          </div>
+          <div *ngFor="let performer of dashboard.top_performers; let i = index" class="performer-item" (click)="loadEmployeeDetail(performer.id)">
+            <div class="rank">{{ i + 1 }}</div>
+            <div class="performer-info">
+              <div class="performer-name">{{ performer.name }}</div>
+              <div class="performer-stats">{{ formatHours(performer.productive_hours) }} productive</div>
+            </div>
+            <div class="performer-score" [style.color]="getScoreColor(performer.score)">
+              {{ performer.score }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Needs Attention -->
+      <div class="card">
+        <div class="card-header">
+          <h2>⚠️ Needs Attention</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="dashboard.needs_attention.length === 0" class="empty-state">
+            <p>Everyone is productive!</p>
+          </div>
+          <div *ngFor="let employee of dashboard.needs_attention" class="attention-item" (click)="loadEmployeeDetail(employee.id)">
+            <div class="attention-info">
+              <div class="attention-name">{{ employee.name }}</div>
+              <div class="attention-distraction" *ngIf="employee.top_distraction">
+                Top distraction: {{ employee.top_distraction }}
+              </div>
+            </div>
+            <div class="attention-score" [style.color]="getScoreColor(employee.score)">
+              {{ employee.score }}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Productive Apps -->
+      <div class="card">
+        <div class="card-header">
+          <h2>✅ Top Productive Apps</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="dashboard.top_productive_apps.length === 0" class="empty-state">
+            <p>No productive apps tracked</p>
+          </div>
+          <div *ngFor="let app of dashboard.top_productive_apps" class="app-item">
+            <div class="app-icon">💻</div>
+            <div class="app-info">
+              <div class="app-name">{{ app.name }}</div>
+            </div>
+            <div class="app-hours">{{ formatHours(app.total_hours) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Unproductive Apps -->
+      <div class="card">
+        <div class="card-header">
+          <h2>❌ Top Unproductive Apps</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="dashboard.top_unproductive_apps.length === 0" class="empty-state">
+            <p>No unproductive apps tracked</p>
+          </div>
+          <div *ngFor="let app of dashboard.top_unproductive_apps" class="app-item">
+            <div class="app-icon">🎮</div>
+            <div class="app-info">
+              <div class="app-name">{{ app.name }}</div>
+            </div>
+            <div class="app-hours danger">{{ formatHours(app.total_hours) }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employees List View -->
+  <div *ngIf="!loading && !error && viewMode === 'employees'" class="content">
+    <!-- Filters -->
+    <div class="filters-bar">
+      <select class="filter-select" [(ngModel)]="selectedStatus" (change)="onStatusChange()">
+        <option value="">All Status</option>
+        <option value="productive">Productive</option>
+        <option value="needs_improvement">Needs Improvement</option>
+        <option value="unproductive">Unproductive</option>
+      </select>
+    </div>
+
+    <!-- Employees Table -->
+    <div class="card">
+      <div class="card-header">
+        <h2>All Employees ({{ employees.length }})</h2>
+      </div>
+      <div class="card-body">
+        <div *ngIf="loadingEmployees" class="loading-inline">
+          <div class="spinner-small"></div>
+          <span>Loading...</span>
+        </div>
+
+        <div *ngIf="!loadingEmployees && employees.length === 0" class="empty-state">
+          <p>No employees found</p>
+        </div>
+
+        <table *ngIf="!loadingEmployees && employees.length > 0" class="employees-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Productive</th>
+              <th>Neutral</th>
+              <th>Unproductive</th>
+              <th>Total</th>
+              <th>Score</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let emp of employees" class="clickable-row" (click)="loadEmployeeDetail(emp.id)">
+              <td>
+                <div class="employee-cell">
+                  <div class="avatar">{{ emp.name.charAt(0) }}</div>
+                  <div>
+                    <div class="emp-name">{{ emp.name }}</div>
+                    <div class="emp-id">{{ emp.employee_id }}</div>
+                  </div>
+                </div>
+              </td>
+              <td>{{ emp.department || 'N/A' }}</td>
+              <td class="text-success">{{ formatDuration(emp.productive_hours) }}</td>
+              <td class="text-muted">{{ formatDuration(emp.neutral_hours) }}</td>
+              <td class="text-danger">{{ formatDuration(emp.non_productive_hours) }}</td>
+              <td>{{ formatDuration(emp.total_tracked_hours) }}</td>
+              <td>
+                <span class="score-badge" [style.background]="getScoreColor(emp.productivity_score)">
+                  {{ emp.productivity_score }}%
+                </span>
+              </td>
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClass(emp.status)">
+                  {{ getStatusLabel(emp.status) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee Detail View -->
+  <div *ngIf="!loading && !error && viewMode === 'detail' && selectedEmployee" class="content">
+    <div *ngIf="loadingDetail" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading employee details...</p>
+    </div>
+
+    <div *ngIf="!loadingDetail">
+      <!-- Employee Header -->
+      <div class="employee-header">
+        <div class="employee-avatar-large">{{ selectedEmployee.user.name.charAt(0) }}</div>
+        <div class="employee-details">
+          <h2>{{ selectedEmployee.user.name }}</h2>
+          <p>{{ selectedEmployee.user.employee_id }} • {{ selectedEmployee.user.department || 'No Department' }}</p>
+        </div>
+        <div class="employee-score-large">
+          <div class="score-circle" [style.border-color]="getScoreColor(selectedEmployee.productivity_score)">
+            <span [style.color]="getScoreColor(selectedEmployee.productivity_score)">
+              {{ selectedEmployee.productivity_score }}%
+            </span>
+          </div>
+          <div class="status-badge-large" [ngClass]="getStatusClass(selectedEmployee.status)">
+            {{ getStatusLabel(selectedEmployee.status) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Breakdown Cards -->
+      <div class="breakdown-grid">
+        <div class="breakdown-card productive">
+          <h3>Productive</h3>
+          <div class="breakdown-time">{{ formatDuration(selectedEmployee.breakdown.productive.hours) }}</div>
+          <div class="breakdown-percent">{{ selectedEmployee.breakdown.productive.percentage }}%</div>
+        </div>
+        <div class="breakdown-card neutral">
+          <h3>Neutral</h3>
+          <div class="breakdown-time">{{ formatDuration(selectedEmployee.breakdown.neutral.hours) }}</div>
+          <div class="breakdown-percent">{{ selectedEmployee.breakdown.neutral.percentage }}%</div>
+        </div>
+        <div class="breakdown-card unproductive">
+          <h3>Non-Productive</h3>
+          <div class="breakdown-time">{{ formatDuration(selectedEmployee.breakdown.non_productive.hours) }}</div>
+          <div class="breakdown-percent">{{ selectedEmployee.breakdown.non_productive.percentage }}%</div>
+        </div>
+        <div class="breakdown-card total">
+          <h3>Total Tracked</h3>
+          <div class="breakdown-time">{{ formatDuration(selectedEmployee.total_tracked_hours) }}</div>
+          <div class="breakdown-percent">100%</div>
+        </div>
+      </div>
+
+      <!-- Daily Trend & Top Apps -->
+      <div class="detail-grid">
+        <!-- Daily Trend -->
+        <div class="card">
+          <div class="card-header">
+            <h2>📈 Daily Trend</h2>
+          </div>
+          <div class="card-body">
+            <div *ngIf="selectedEmployee.daily_trend.length === 0" class="empty-state">
+              <p>No daily data available</p>
+            </div>
+            <div *ngIf="selectedEmployee.daily_trend.length > 0" class="trend-chart">
+              <div *ngFor="let day of selectedEmployee.daily_trend" class="trend-bar-container">
+                <div class="trend-bar-wrapper">
+                  <div
+                    class="trend-bar"
+                    [style.height.%]="day.score"
+                    [style.background]="getScoreColor(day.score)"
+                  ></div>
+                </div>
+                <div class="trend-label">
+                  <div class="trend-date">{{ formatDate(day.date) }}</div>
+                  <div class="trend-score">{{ day.score }}%</div>
+                  <div class="trend-hours">{{ formatHours(day.hours) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Apps -->
+        <div class="card">
+          <div class="card-header">
+            <h2>📱 Top Applications</h2>
+          </div>
+          <div class="card-body">
+            <div *ngIf="selectedEmployee.top_apps.length === 0" class="empty-state">
+              <p>No application data</p>
+            </div>
+            <div *ngFor="let app of selectedEmployee.top_apps" class="app-detail-item">
+              <div class="app-detail-info">
+                <div class="app-detail-name">{{ app.name }}</div>
+                <span class="category-badge" [ngClass]="getCategoryClass(app.category)">
+                  {{ getCategoryLabel(app.category) }}
+                </span>
+              </div>
+              <div class="app-detail-stats">
+                <div class="app-detail-time">{{ formatDuration(app.hours) }}</div>
+                <div class="app-detail-count">{{ app.count }} sessions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

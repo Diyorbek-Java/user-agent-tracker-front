@@ -27,6 +27,16 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'productivity',
+    loadComponent: () => import('./features/productivity-dashboard/productivity-dashboard.component').then(m => m.ProductivityDashboardComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'app-categories',
+    loadComponent: () => import('./features/app-categories/app-categories.component').then(m => m.AppCategoriesComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: '**',
     redirectTo: '/dashboard'
   }

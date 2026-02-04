@@ -4,8 +4,17 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
-import { DashboardStats, ActivityTimeline, ProductivityReport } from '../../core/models/dashboard.model';
+import { ProductivityService } from '../../core/services/productivity.service';
+import { DashboardStats, ActivityTimeline, ProductivityReport, Activity } from '../../core/models/dashboard.model';
+import { EmployeeProductivityDetail, AppUsage } from '../../core/models/productivity.model';
 import { User } from '../../core/models/user.model';
+
+interface GroupedActivities {
+  label: string;
+  date: string;
+  activities: Activity[];
+  totalDuration: number;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -21,6 +30,14 @@ export class DashboardComponent implements OnInit {
   timeline: ActivityTimeline[] = [];
   loading = true;
   error = '';
+
+  // Employee productivity data
+  myProductivity: EmployeeProductivityDetail | null = null;
+  groupedActivities: GroupedActivities[] = [];
+  loadingActivities = false;
+
+  // Activity view
+  selectedPeriod: 'today' | 'yesterday' | 'week' = 'today';
 
   // User selection for admin/manager
   availableUsers: User[] = [];
@@ -42,6 +59,7 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private dashboardService: DashboardService,
+    private productivityService: ProductivityService,
     private authService: AuthService,
     private router: Router
   ) {}
@@ -54,6 +72,8 @@ export class DashboardComponent implements OnInit {
       this.loadUserList();
     } else {
       this.loadDashboardData();
+      this.loadMyProductivity();
+      this.loadMyActivities();
     }
   }
 
@@ -132,6 +152,123 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  loadMyProductivity(): void {
+    if (!this.currentUser) return;
+
+    this.productivityService.getEmployeeDetail(this.currentUser.id, 7).subscribe({
+      next: (data) => {
+        this.myProductivity = data;
+      },
+      error: (err) => {
+        console.error('My productivity error:', err);
+      }
+    });
+  }
+
+  loadMyActivities(): void {
+    this.loadingActivities = true;
+    const days = this.selectedPeriod === 'today' ? 1 : this.selectedPeriod === 'yesterday' ? 2 : 7;
+
+    this.dashboardService.getMyActivities(1, 100, {}).subscribe({
+      next: (data) => {
+        this.groupActivitiesByDate(data.results);
+        this.loadingActivities = false;
+      },
+      error: (err) => {
+        console.error('Activities error:', err);
+        this.loadingActivities = false;
+      }
+    });
+  }
+
+  groupActivitiesByDate(activities: Activity[]): void {
+    const groups: { [key: string]: GroupedActivities } = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    activities.forEach(activity => {
+      const activityDate = new Date(activity.start_time);
+      activityDate.setHours(0, 0, 0, 0);
+
+      const dateKey = activityDate.toISOString().split('T')[0];
+      let label = activityDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+      if (activityDate.getTime() === today.getTime()) {
+        label = 'Today';
+      } else if (activityDate.getTime() === yesterday.getTime()) {
+        label = 'Yesterday';
+      }
+
+      if (!groups[dateKey]) {
+        groups[dateKey] = {
+          label,
+          date: dateKey,
+          activities: [],
+          totalDuration: 0
+        };
+      }
+
+      groups[dateKey].activities.push(activity);
+      groups[dateKey].totalDuration += activity.duration || 0;
+    });
+
+    // Sort by date descending
+    this.groupedActivities = Object.values(groups).sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }
+
+  onPeriodChange(): void {
+    this.loadMyActivities();
+  }
+
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'productive': return 'status-productive';
+      case 'needs_improvement': return 'status-warning';
+      case 'unproductive': return 'status-danger';
+      default: return '';
+    }
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'productive': return 'Productive';
+      case 'needs_improvement': return 'Needs Improvement';
+      case 'unproductive': return 'Unproductive';
+      default: return status;
+    }
+  }
+
+  getCategoryClass(category: string): string {
+    switch (category) {
+      case 'PRODUCTIVE': return 'cat-productive';
+      case 'NON_PRODUCTIVE': return 'cat-unproductive';
+      default: return 'cat-neutral';
+    }
+  }
+
+  getScoreColor(score: number): string {
+    if (score >= 70) return '#10b981';
+    if (score >= 50) return '#f59e0b';
+    return '#ef4444';
+  }
+
+  formatDuration(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) {
+      return `${h}h ${m}m ${s}s`;
+    } else if (m > 0) {
+      return `${m}m ${s}s`;
+    }
+    return `${s}s`;
+  }
+
   formatHours(hours: number): string {
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
@@ -167,5 +304,9 @@ export class DashboardComponent implements OnInit {
 
   navigateToUserManagement(): void {
     this.router.navigate(['/user-management']);
+  }
+
+  navigateToProductivity(): void {
+    this.router.navigate(['/productivity']);
   }
 }

@@ -22,6 +22,7 @@
       </div>
     </div>
     <div class="header-right">
+      <button *ngIf="isAdminOrManager" class="btn-productivity" (click)="navigateToProductivity()">📊 Productivity</button>
       <button *ngIf="isAdminOrManager" class="btn-create" (click)="navigateToUserManagement()">+ Create User</button>
       <button class="btn-secondary" (click)="navigateToProfile()">Profile</button>
       <button class="btn-logout" (click)="logout()">Logout</button>
@@ -40,8 +41,8 @@
     <button class="btn-primary" (click)="loadDashboardData()">Retry</button>
   </div>
 
-  <!-- Dashboard Content -->
-  <div *ngIf="!loading && !error && dashboardStats" class="dashboard-content">
+  <!-- Dashboard Content for Admin/Manager -->
+  <div *ngIf="!loading && !error && dashboardStats && isAdminOrManager" class="dashboard-content">
     <!-- Stats Cards -->
     <div class="stats-grid">
       <div class="stat-card">
@@ -178,6 +179,185 @@
             <span class="summary-value">
               {{ dashboardStats.total_sessions > 0 ? formatHours(dashboardStats.total_active_time / dashboardStats.total_sessions) : '0h 0m' }}
             </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Content for Employee -->
+  <div *ngIf="!loading && !error && !isAdminOrManager" class="dashboard-content">
+    <!-- Productivity Score Banner -->
+    <div *ngIf="myProductivity" class="productivity-banner">
+      <div class="score-circle-large" [style.border-color]="getScoreColor(myProductivity.productivity_score)">
+        <span class="score-value" [style.color]="getScoreColor(myProductivity.productivity_score)">
+          {{ myProductivity.productivity_score }}%
+        </span>
+        <span class="score-label-text">Productivity</span>
+      </div>
+      <div class="productivity-details">
+        <h2>Your Productivity Score</h2>
+        <p class="status-text" [ngClass]="getStatusClass(myProductivity.status)">
+          {{ getStatusLabel(myProductivity.status) }}
+        </p>
+        <p class="period-text">Last 7 days ({{ myProductivity.period.from }} - {{ myProductivity.period.to }})</p>
+      </div>
+    </div>
+
+    <!-- Breakdown Cards -->
+    <div *ngIf="myProductivity" class="breakdown-grid">
+      <div class="breakdown-card productive-card">
+        <div class="breakdown-icon">✅</div>
+        <div class="breakdown-info">
+          <h3>Productive</h3>
+          <div class="breakdown-time">{{ formatDuration(myProductivity.breakdown.productive.hours * 3600) }}</div>
+          <div class="breakdown-percent">{{ myProductivity.breakdown.productive.percentage }}%</div>
+        </div>
+      </div>
+      <div class="breakdown-card neutral-card">
+        <div class="breakdown-icon">⚪</div>
+        <div class="breakdown-info">
+          <h3>Neutral</h3>
+          <div class="breakdown-time">{{ formatDuration(myProductivity.breakdown.neutral.hours * 3600) }}</div>
+          <div class="breakdown-percent">{{ myProductivity.breakdown.neutral.percentage }}%</div>
+        </div>
+      </div>
+      <div class="breakdown-card unproductive-card">
+        <div class="breakdown-icon">❌</div>
+        <div class="breakdown-info">
+          <h3>Non-Productive</h3>
+          <div class="breakdown-time">{{ formatDuration(myProductivity.breakdown.non_productive.hours * 3600) }}</div>
+          <div class="breakdown-percent">{{ myProductivity.breakdown.non_productive.percentage }}%</div>
+        </div>
+      </div>
+      <div class="breakdown-card total-card">
+        <div class="breakdown-icon">📊</div>
+        <div class="breakdown-info">
+          <h3>Total Tracked</h3>
+          <div class="breakdown-time">{{ formatDuration(myProductivity.total_tracked_hours * 3600) }}</div>
+          <div class="breakdown-percent">100%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid for Employee -->
+    <div class="content-grid">
+      <!-- Top Apps with Categories -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📱 Your Top Applications</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="!myProductivity || myProductivity.top_apps.length === 0" class="empty-state">
+            <p>No application data available</p>
+          </div>
+          <div *ngFor="let app of myProductivity?.top_apps" class="app-detail-item">
+            <div class="app-left">
+              <span class="app-icon-large">💻</span>
+              <div class="app-details">
+                <div class="app-name-large">{{ app.name }}</div>
+                <span class="category-tag" [ngClass]="getCategoryClass(app.category)">
+                  {{ app.category === 'PRODUCTIVE' ? 'Productive' : app.category === 'NON_PRODUCTIVE' ? 'Non-Productive' : 'Neutral' }}
+                </span>
+              </div>
+            </div>
+            <div class="app-right">
+              <div class="app-duration-large">{{ formatDuration(app.hours * 3600) }}</div>
+              <div class="app-sessions">{{ app.count }} sessions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Trend -->
+      <div class="card">
+        <div class="card-header">
+          <h2>📈 Daily Productivity Trend</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="!myProductivity || myProductivity.daily_trend.length === 0" class="empty-state">
+            <p>No trend data available</p>
+          </div>
+          <div *ngIf="myProductivity && myProductivity.daily_trend.length > 0" class="productivity-chart">
+            <div *ngFor="let day of myProductivity.daily_trend" class="productivity-bar-container">
+              <div class="productivity-bar-wrapper">
+                <div
+                  class="productivity-bar"
+                  [style.height.%]="day.score"
+                  [style.background]="getScoreColor(day.score)"
+                >
+                </div>
+              </div>
+              <div class="productivity-label">
+                <div class="day-label">{{ formatDate(day.date) }}</div>
+                <div class="score-label">{{ day.score }}%</div>
+                <div class="hours-label">{{ formatHours(day.hours) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activities by Day -->
+      <div class="card activities-card">
+        <div class="card-header">
+          <h2>🕐 Recent Activities</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="loadingActivities" class="loading-inline">
+            <div class="spinner-small"></div>
+            <span>Loading activities...</span>
+          </div>
+
+          <div *ngIf="!loadingActivities && groupedActivities.length === 0" class="empty-state">
+            <p>No recent activities</p>
+          </div>
+
+          <div *ngFor="let group of groupedActivities" class="activity-group">
+            <div class="activity-group-header">
+              <span class="group-label">{{ group.label }}</span>
+              <span class="group-duration">Total: {{ formatDuration(group.totalDuration) }}</span>
+            </div>
+            <div class="activity-list">
+              <div *ngFor="let activity of group.activities.slice(0, 10)" class="activity-item">
+                <div class="activity-left">
+                  <span class="activity-process">{{ activity.process_name }}</span>
+                  <span class="activity-window" *ngIf="activity.window_title">{{ activity.window_title }}</span>
+                </div>
+                <div class="activity-right">
+                  <span class="activity-time">{{ formatTime(activity.start_time) }}</span>
+                  <span class="activity-duration">{{ formatDuration(activity.duration) }}</span>
+                </div>
+              </div>
+              <div *ngIf="group.activities.length > 10" class="more-activities">
+                +{{ group.activities.length - 10 }} more activities
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="card" *ngIf="dashboardStats">
+        <div class="card-header">
+          <h2>📊 Quick Stats</h2>
+        </div>
+        <div class="card-body">
+          <div class="summary-item">
+            <span class="summary-label">Total Sessions</span>
+            <span class="summary-value">{{ dashboardStats.total_sessions }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Today's Active Time</span>
+            <span class="summary-value">{{ formatHours(dashboardStats.today_active_time) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">This Week</span>
+            <span class="summary-value">{{ formatHours(dashboardStats.week_active_time) }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Total Activities</span>
+            <span class="summary-value">{{ dashboardStats.total_activities }}</span>
           </div>
         </div>
       </div>
