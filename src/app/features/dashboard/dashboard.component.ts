@@ -309,4 +309,12 @@ export class DashboardComponent implements OnInit {
   navigateToProductivity(): void {
     this.router.navigate(['/productivity']);
   }
+
+  navigateToOrganization(): void {
+    this.router.navigate(['/organization']);
+  }
+
+  navigateToManualTime(): void {
+    this.router.navigate(['/manual-time']);
+  }
 }

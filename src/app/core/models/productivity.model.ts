@@ -126,3 +126,26 @@ export interface UncategorizedApp {
 export interface UncategorizedAppsResponse {
   uncategorized_apps: UncategorizedApp[];
 }
+
+export interface ManualTimeEntry {
+  id: number;
+  user: number;
+  user_name: string;
+  activity_type: string;
+  activity_type_display: string;
+  description: string;
+  start_time: string;
+  end_time: string;
+  duration_minutes: number;
+  is_productive: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ManualTimeEntryCreate {
+  activity_type: string;
+  description: string;
+  start_time: string;
+  end_time: string;
+  is_productive: boolean;
+}

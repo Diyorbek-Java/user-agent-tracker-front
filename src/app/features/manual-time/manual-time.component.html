@@ -1,0 +1,148 @@
+<div class="manual-time-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <button class="btn-back" (click)="navigateBack()">← Back</button>
+      <div>
+        <h1>Manual Time Entries</h1>
+        <p>Log non-computer activities (meetings, calls, field work, etc.)</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn-primary" (click)="openCreateModal()">+ Log Time</button>
+      <button class="btn-logout" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading entries...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="error-container">
+    <p>{{ error }}</p>
+    <button class="btn-primary" (click)="loadEntries()">Retry</button>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error" class="content">
+    <div class="card">
+      <div class="card-header">
+        <h2>Time Entries ({{ entries.length }})</h2>
+      </div>
+      <div class="card-body">
+        <div *ngIf="entries.length === 0" class="empty-state">
+          <p>No manual time entries yet. Click "+ Log Time" to add your first entry.</p>
+        </div>
+
+        <table *ngIf="entries.length > 0" class="entries-table">
+          <thead>
+            <tr>
+              <th *ngIf="isAdminOrManager">Employee</th>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Duration</th>
+              <th>Productive</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of entries">
+              <td *ngIf="isAdminOrManager">{{ entry.user_name }}</td>
+              <td>
+                <span class="type-badge" [ngClass]="'type-' + entry.activity_type.toLowerCase()">
+                  {{ entry.activity_type_display || getActivityTypeLabel(entry.activity_type) }}
+                </span>
+              </td>
+              <td class="desc-cell">{{ entry.description }}</td>
+              <td class="time-cell">{{ formatDateTime(entry.start_time) }}</td>
+              <td class="time-cell">{{ formatDateTime(entry.end_time) }}</td>
+              <td class="duration-cell">{{ formatDuration(entry.duration_minutes) }}</td>
+              <td>
+                <span class="productive-badge" [class.is-productive]="entry.is_productive" [class.not-productive]="!entry.is_productive">
+                  {{ entry.is_productive ? 'Yes' : 'No' }}
+                </span>
+              </td>
+              <td class="actions-cell">
+                <button class="btn-icon btn-edit" (click)="openEditModal(entry)" title="Edit">✏️</button>
+                <button class="btn-icon btn-delete" (click)="deleteEntry(entry)" title="Delete">🗑️</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ modalMode === 'create' ? 'Log Time Entry' : 'Edit Entry' }}</h2>
+        <button class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="entry_type">Activity Type *</label>
+          <select id="entry_type" class="form-select" [(ngModel)]="formData.activity_type">
+            <option *ngFor="let type of activityTypes" [value]="type.value">{{ type.label }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="entry_desc">Description *</label>
+          <textarea
+            id="entry_desc"
+            class="form-textarea"
+            [(ngModel)]="formData.description"
+            placeholder="What did you do?"
+            rows="3"
+          ></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="entry_start">Start Time *</label>
+            <input
+              type="datetime-local"
+              id="entry_start"
+              class="form-input"
+              [(ngModel)]="formData.start_time"
+            />
+          </div>
+          <div class="form-group">
+            <label for="entry_end">End Time *</label>
+            <input
+              type="datetime-local"
+              id="entry_end"
+              class="form-input"
+              [(ngModel)]="formData.end_time"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="formData.is_productive" />
+            <span>Count as productive time</span>
+          </label>
+          <small>Toggle off for breaks or non-productive activities</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button
+          class="btn-primary"
+          (click)="saveEntry()"
+          [disabled]="saving || !formData.description || !formData.start_time || !formData.end_time"
+        >
+          {{ saving ? 'Saving...' : (modalMode === 'create' ? 'Log Entry' : 'Save') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

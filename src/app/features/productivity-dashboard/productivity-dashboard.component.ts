@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ProductivityService } from '../../core/services/productivity.service';
+import { OrganizationService } from '../../core/services/organization.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
   ProductivityDashboard,
@@ -10,6 +11,7 @@ import {
   EmployeeProductivityDetail,
   AppUsage
 } from '../../core/models/productivity.model';
+import { Department } from '../../core/models/organization.model';
 import { User } from '../../core/models/user.model';
 
 @Component({
@@ -33,6 +35,8 @@ export class ProductivityDashboardComponent implements OnInit {
   // Filters
   selectedDays = 7;
   selectedStatus: string = '';
+  selectedDepartment: number | undefined = undefined;
+  departments: Department[] = [];
   daysOptions = [
     { value: 1, label: 'Today' },
     { value: 7, label: 'Last 7 Days' },
@@ -49,6 +53,7 @@ export class ProductivityDashboardComponent implements OnInit {
 
   constructor(
     private productivityService: ProductivityService,
+    private orgService: OrganizationService,
     private authService: AuthService,
     private router: Router
   ) {}
@@ -61,7 +66,15 @@ export class ProductivityDashboardComponent implements OnInit {
       return;
     }
 
+    this.loadDepartments();
     this.loadDashboard();
+  }
+
+  loadDepartments(): void {
+    this.orgService.getDepartments().subscribe({
+      next: (data) => this.departments = data,
+      error: (err) => console.error('Departments error:', err)
+    });
   }
 
   loadDashboard(): void {
@@ -86,7 +99,7 @@ export class ProductivityDashboardComponent implements OnInit {
     this.loadingEmployees = true;
     const status = this.selectedStatus as 'productive' | 'needs_improvement' | 'unproductive' | undefined;
 
-    this.productivityService.getEmployeesList(this.selectedDays, undefined, status || undefined).subscribe({
+    this.productivityService.getEmployeesList(this.selectedDays, this.selectedDepartment, status || undefined).subscribe({
       next: (data) => {
         this.employees = data.employees;
         this.loadingEmployees = false;
@@ -119,6 +132,10 @@ export class ProductivityDashboardComponent implements OnInit {
   }
 
   onStatusChange(): void {
+    this.loadEmployees();
+  }
+
+  onDepartmentChange(): void {
     this.loadEmployees();
   }
 
@@ -196,6 +213,10 @@ export class ProductivityDashboardComponent implements OnInit {
 
   navigateToAppCategories(): void {
     this.router.navigate(['/app-categories']);
+  }
+
+  navigateToDepartmentRules(): void {
+    this.router.navigate(['/department-rules']);
   }
 
   navigateBack(): void {

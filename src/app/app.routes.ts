@@ -37,6 +37,21 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'organization',
+    loadComponent: () => import('./features/organization/organization.component').then(m => m.OrganizationComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'department-rules',
+    loadComponent: () => import('./features/department-rules/department-rules.component').then(m => m.DepartmentRulesComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'manual-time',
+    loadComponent: () => import('./features/manual-time/manual-time.component').then(m => m.ManualTimeComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: '**',
     redirectTo: '/dashboard'
   }

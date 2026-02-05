@@ -1,0 +1,143 @@
+<div class="rules-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <button class="btn-back" (click)="navigateBack()">← Back</button>
+      <div>
+        <h1>Department App Rules</h1>
+        <p>Override app categories per department</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn-primary" (click)="openCreateModal()">+ Add Rule</button>
+      <button class="btn-logout" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading rules...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="error-container">
+    <p>{{ error }}</p>
+    <button class="btn-primary" (click)="loadData()">Retry</button>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error" class="content">
+    <div class="card">
+      <div class="card-header">
+        <h2>All Rules ({{ filteredRules.length }})</h2>
+        <div class="filter-group">
+          <label>Department:</label>
+          <select class="filter-select" [(ngModel)]="filterDepartment">
+            <option [ngValue]="undefined">All</option>
+            <option *ngFor="let dept of departments" [ngValue]="dept.id">{{ dept.name }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        <div *ngIf="filteredRules.length === 0" class="empty-state">
+          <p>No department rules found. Create one to override app categories for specific departments.</p>
+        </div>
+
+        <table *ngIf="filteredRules.length > 0" class="rules-table">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Application</th>
+              <th>Override Category</th>
+              <th>Reason</th>
+              <th>Created By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rule of filteredRules">
+              <td class="dept-cell">{{ rule.department_name }}</td>
+              <td>
+                <div class="app-info">
+                  <span class="app-display">{{ rule.app_display_name }}</span>
+                  <span class="app-process">{{ rule.app_process_name }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="category-badge" [ngClass]="getCategoryClass(rule.category_override)">
+                  {{ getCategoryLabel(rule.category_override) }}
+                </span>
+              </td>
+              <td class="reason-cell">{{ rule.reason || '-' }}</td>
+              <td class="creator-cell">{{ rule.created_by_name || '-' }}</td>
+              <td class="actions-cell">
+                <button class="btn-icon btn-edit" (click)="openEditModal(rule)" title="Edit">✏️</button>
+                <button class="btn-icon btn-delete" (click)="deleteRule(rule)" title="Delete">🗑️</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ modalMode === 'create' ? 'Add Department Rule' : 'Edit Rule' }}</h2>
+        <button class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="rule_dept">Department *</label>
+          <select id="rule_dept" class="form-select" [(ngModel)]="formData.department" [disabled]="modalMode === 'edit'">
+            <option *ngFor="let dept of departments" [ngValue]="dept.id">{{ dept.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="rule_app">Application *</label>
+          <select id="rule_app" class="form-select" [(ngModel)]="formData.app_category" [disabled]="modalMode === 'edit'">
+            <option *ngFor="let cat of appCategories" [ngValue]="cat.id">
+              {{ cat.display_name }} ({{ cat.process_name }}) — {{ getCategoryLabel(cat.category) }}
+            </option>
+          </select>
+          <small>The app whose category will be overridden for this department</small>
+        </div>
+
+        <div class="form-group">
+          <label for="rule_override">Override Category *</label>
+          <select id="rule_override" class="form-select" [(ngModel)]="formData.category_override">
+            <option value="PRODUCTIVE">Productive</option>
+            <option value="NEUTRAL">Neutral</option>
+            <option value="NON_PRODUCTIVE">Non-Productive</option>
+          </select>
+          <small>This department will see this app as the selected category</small>
+        </div>
+
+        <div class="form-group">
+          <label for="rule_reason">Reason</label>
+          <textarea
+            id="rule_reason"
+            class="form-textarea"
+            [(ngModel)]="formData.reason"
+            placeholder="Why does this department need a different category?"
+            rows="3"
+          ></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button
+          class="btn-primary"
+          (click)="saveRule()"
+          [disabled]="saving || !formData.department || !formData.app_category"
+        >
+          {{ saving ? 'Saving...' : (modalMode === 'create' ? 'Create' : 'Save') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

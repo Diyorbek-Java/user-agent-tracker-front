@@ -8,7 +8,9 @@ import {
   AppCategory,
   AppCategoryCreate,
   UncategorizedAppsResponse,
-  AppUsage
+  AppUsage,
+  ManualTimeEntry,
+  ManualTimeEntryCreate
 } from '../models/productivity.model';
 
 @Injectable({
@@ -81,5 +83,26 @@ export class ProductivityService {
   getUncategorizedApps(limit: number = 20): Observable<UncategorizedAppsResponse> {
     const params = new HttpParams().set('limit', limit.toString());
     return this.http.get<UncategorizedAppsResponse>(`${this.API_URL}/app-categories/suggestions/`, { params });
+  }
+
+  // Manual Time Entry endpoints
+  getManualTimeEntries(userId?: number): Observable<ManualTimeEntry[]> {
+    let params = new HttpParams();
+    if (userId) {
+      params = params.set('user', userId.toString());
+    }
+    return this.http.get<ManualTimeEntry[]>(`/api/frontend/manual-time/`, { params });
+  }
+
+  createManualTimeEntry(data: ManualTimeEntryCreate): Observable<ManualTimeEntry> {
+    return this.http.post<ManualTimeEntry>(`/api/frontend/manual-time/`, data);
+  }
+
+  updateManualTimeEntry(id: number, data: Partial<ManualTimeEntryCreate>): Observable<ManualTimeEntry> {
+    return this.http.put<ManualTimeEntry>(`/api/frontend/manual-time/${id}/`, data);
+  }
+
+  deleteManualTimeEntry(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/frontend/manual-time/${id}/`);
   }
 }

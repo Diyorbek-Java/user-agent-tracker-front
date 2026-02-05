@@ -23,6 +23,8 @@
     </div>
     <div class="header-right">
       <button *ngIf="isAdminOrManager" class="btn-productivity" (click)="navigateToProductivity()">📊 Productivity</button>
+      <button *ngIf="isAdminOrManager" class="btn-secondary" (click)="navigateToOrganization()">🏢 Organization</button>
+      <button class="btn-secondary" (click)="navigateToManualTime()">⏱️ Manual Time</button>
       <button *ngIf="isAdminOrManager" class="btn-create" (click)="navigateToUserManagement()">+ Create User</button>
       <button class="btn-secondary" (click)="navigateToProfile()">Profile</button>
       <button class="btn-logout" (click)="logout()">Logout</button>

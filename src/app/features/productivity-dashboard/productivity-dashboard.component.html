@@ -13,6 +13,7 @@
         <option *ngFor="let opt of daysOptions" [value]="opt.value">{{ opt.label }}</option>
       </select>
       <button class="btn-primary" (click)="navigateToAppCategories()">Manage Categories</button>
+      <button class="btn-secondary" (click)="navigateToDepartmentRules()">Dept Rules</button>
       <button class="btn-logout" (click)="logout()">Logout</button>
     </div>
   </header>
@@ -182,6 +183,10 @@
   <div *ngIf="!loading && !error && viewMode === 'employees'" class="content">
     <!-- Filters -->
     <div class="filters-bar">
+      <select class="filter-select" [(ngModel)]="selectedDepartment" (change)="onDepartmentChange()">
+        <option [ngValue]="undefined">All Departments</option>
+        <option *ngFor="let dept of departments" [ngValue]="dept.id">{{ dept.name }}</option>
+      </select>
       <select class="filter-select" [(ngModel)]="selectedStatus" (change)="onStatusChange()">
         <option value="">All Status</option>
         <option value="productive">Productive</option>
