@@ -8,7 +8,10 @@ import {
   JobPosition,
   JobPositionCreate,
   DepartmentAppRule,
-  DepartmentAppRuleCreate
+  DepartmentAppRuleCreate,
+  PositionAppWeight,
+  PositionAppWeightCreate,
+  ProductivitySettingsModel
 } from '../models/organization.model';
 
 @Injectable({
@@ -96,5 +99,35 @@ export class OrganizationService {
 
   deleteDepartmentRule(id: number): Observable<void> {
     return this.http.delete<void>(`${this.API_URL}/department-rules/${id}/`);
+  }
+
+  // Position App Weights endpoints
+  getPositionWeights(positionId?: number): Observable<PositionAppWeight[]> {
+    let url = `${this.API_URL}/position-weights/`;
+    if (positionId) {
+      url += `?position=${positionId}`;
+    }
+    return this.http.get<PositionAppWeight[]>(url);
+  }
+
+  createPositionWeight(data: PositionAppWeightCreate): Observable<PositionAppWeight> {
+    return this.http.post<PositionAppWeight>(`${this.API_URL}/position-weights/`, data);
+  }
+
+  updatePositionWeight(id: number, data: Partial<PositionAppWeightCreate>): Observable<PositionAppWeight> {
+    return this.http.put<PositionAppWeight>(`${this.API_URL}/position-weights/${id}/`, data);
+  }
+
+  deletePositionWeight(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.API_URL}/position-weights/${id}/`);
+  }
+
+  // Productivity Settings endpoints
+  getProductivitySettings(): Observable<ProductivitySettingsModel> {
+    return this.http.get<ProductivitySettingsModel>(`${this.API_URL}/productivity-settings/`);
+  }
+
+  updateProductivitySettings(data: Partial<ProductivitySettingsModel>): Observable<ProductivitySettingsModel> {
+    return this.http.put<ProductivitySettingsModel>(`${this.API_URL}/productivity-settings/`, data);
   }
 }

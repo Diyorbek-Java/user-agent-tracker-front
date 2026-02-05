@@ -5,11 +5,11 @@
       <button class="btn-back" (click)="navigateBack()">← Back</button>
       <div>
         <h1>App Categories</h1>
-        <p>Manage application productivity categories</p>
+        <p>Configure app productivity weights per job position</p>
       </div>
     </div>
     <div class="header-right">
-      <button class="btn-primary" (click)="openCreateModal()">+ Add Category</button>
+      <button class="btn-primary" (click)="openCreateModal()">+ Register App</button>
       <button class="btn-logout" (click)="logout()">Logout</button>
     </div>
   </header>
@@ -28,103 +28,206 @@
 
   <!-- Main Content -->
   <div *ngIf="!loading && !error" class="content">
-    <!-- Suggestions Section -->
-    <div class="card suggestions-card" *ngIf="suggestions.length > 0">
-      <div class="card-header">
-        <h2>📋 Uncategorized Apps ({{ suggestions.length }})</h2>
-        <p class="card-subtitle">These apps are being used but haven't been categorized yet</p>
-      </div>
-      <div class="card-body">
-        <div *ngIf="loadingSuggestions" class="loading-inline">
-          <div class="spinner-small"></div>
-          <span>Loading...</span>
-        </div>
 
-        <div class="suggestions-grid">
-          <div *ngFor="let suggestion of suggestions" class="suggestion-item">
-            <div class="suggestion-info">
-              <div class="suggestion-name">{{ suggestion.display_name }}</div>
-              <div class="suggestion-meta">
-                {{ suggestion.process_name }} • {{ formatHours(suggestion.total_hours) }} total • {{ suggestion.users_count }} users
+    <!-- Position Selector Bar (REQUIRED) -->
+    <div class="position-bar" [class.position-bar-empty]="!selectedPosition">
+      <div class="position-selector">
+        <label>Job Position:</label>
+        <select class="filter-select position-select" [(ngModel)]="selectedPosition" (change)="onPositionChange()">
+          <option [ngValue]="undefined">-- Select a position --</option>
+          <option *ngFor="let pos of positions" [ngValue]="pos.id">{{ pos.title }}</option>
+        </select>
+      </div>
+      <p class="position-hint" *ngIf="selectedPosition">
+        Setting productivity weights for <strong>{{ getPositionTitle() }}</strong>. Same app can have different weights for different positions.
+      </p>
+      <p class="position-hint position-hint-warn" *ngIf="!selectedPosition">
+        Select a job position first to configure which apps are productive for that role.
+      </p>
+    </div>
+
+    <!-- No position selected message -->
+    <div *ngIf="!selectedPosition" class="no-position-message">
+      <div class="no-position-icon">&#9881;</div>
+      <h3>Select a Job Position</h3>
+      <p>Each position has its own productivity weights. For example:</p>
+      <div class="example-grid">
+        <div class="example-item">
+          <strong>Developer</strong>
+          <span>IntelliJ IDEA = 100%</span>
+          <span>Chrome = 50%</span>
+        </div>
+        <div class="example-item">
+          <strong>Marketing</strong>
+          <span>IntelliJ IDEA = 0%</span>
+          <span>Chrome = 80%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Everything below only shows when position is selected -->
+    <ng-container *ngIf="selectedPosition">
+
+      <!-- Settings Card -->
+      <div class="card settings-card">
+        <div class="card-header">
+          <h2>Productivity Settings</h2>
+        </div>
+        <div class="card-body">
+          <div class="settings-grid">
+            <div class="setting-item">
+              <label>Default Weight</label>
+              <div class="weight-input-row">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  [(ngModel)]="settingsForm.default_weight"
+                  class="weight-slider"
+                />
+                <span class="weight-value" [style.color]="getWeightColor(settingsForm.default_weight)">
+                  {{ formatWeight(settingsForm.default_weight) }}
+                </span>
               </div>
+              <small>For apps with no weight set for this position</small>
             </div>
-            <div class="suggestion-actions">
-              <button class="btn-cat btn-productive" (click)="categorizeFromSuggestion(suggestion, 'PRODUCTIVE')" [disabled]="saving">
-                ✓ Productive
-              </button>
-              <button class="btn-cat btn-neutral" (click)="categorizeFromSuggestion(suggestion, 'NEUTRAL')" [disabled]="saving">
-                ○ Neutral
-              </button>
-              <button class="btn-cat btn-unproductive" (click)="categorizeFromSuggestion(suggestion, 'NON_PRODUCTIVE')" [disabled]="saving">
-                ✗ Unproductive
+            <div class="setting-item">
+              <label>Productive >=</label>
+              <input type="number" min="0" max="100" [(ngModel)]="settingsForm.productive_threshold" class="form-input form-input-sm" />
+              <small>% threshold</small>
+            </div>
+            <div class="setting-item">
+              <label>Needs Improvement >=</label>
+              <input type="number" min="0" max="100" [(ngModel)]="settingsForm.needs_improvement_threshold" class="form-input form-input-sm" />
+              <small>% threshold</small>
+            </div>
+            <div class="setting-item setting-action">
+              <button class="btn-primary btn-sm" (click)="saveSettings()" [disabled]="savingSettings">
+                {{ savingSettings ? 'Saving...' : 'Save Settings' }}
               </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Categories Table -->
-    <div class="card">
-      <div class="card-header">
-        <h2>All Categories ({{ categories.length }})</h2>
-        <div class="filter-group">
-          <label>Filter:</label>
-          <select class="filter-select" [(ngModel)]="categoryFilter">
-            <option value="">All</option>
-            <option value="PRODUCTIVE">Productive</option>
-            <option value="NEUTRAL">Neutral</option>
-            <option value="NON_PRODUCTIVE">Non-Productive</option>
-          </select>
+      <!-- Uncategorized Apps -->
+      <div class="card suggestions-card" *ngIf="suggestions.length > 0">
+        <div class="card-header">
+          <h2>Uncategorized Apps ({{ suggestions.length }})</h2>
+          <p class="card-subtitle">Set productivity weight for <strong>{{ getPositionTitle() }}</strong></p>
         </div>
-      </div>
-      <div class="card-body">
-        <div *ngIf="filteredCategories.length === 0" class="empty-state">
-          <p>No categories found</p>
-        </div>
+        <div class="card-body">
+          <div *ngIf="loadingSuggestions" class="loading-inline">
+            <div class="spinner-small"></div>
+            <span>Loading...</span>
+          </div>
 
-        <table *ngIf="filteredCategories.length > 0" class="categories-table">
-          <thead>
-            <tr>
-              <th>Process Name</th>
-              <th>Display Name</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let cat of filteredCategories">
-              <td class="process-name">{{ cat.process_name }}</td>
-              <td>{{ cat.display_name }}</td>
-              <td>
-                <span class="category-badge" [ngClass]="getCategoryClass(cat.category)">
-                  {{ getCategoryLabel(cat.category) }}
+          <div class="suggestions-grid">
+            <div *ngFor="let suggestion of suggestions" class="suggestion-item">
+              <div class="suggestion-info">
+                <div class="suggestion-name">{{ suggestion.display_name }}</div>
+                <div class="suggestion-meta">
+                  {{ suggestion.process_name }} &bull; {{ formatHours(suggestion.total_hours) }} total &bull; {{ suggestion.users_count }} users
+                </div>
+              </div>
+              <div class="suggestion-weight-actions">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  [value]="0.5"
+                  class="weight-slider weight-slider-row"
+                  #weightSlider
+                  (input)="0"
+                />
+                <span class="weight-value-sm" [style.color]="getWeightColor(weightSlider.valueAsNumber)">
+                  {{ formatWeight(weightSlider.valueAsNumber) }}
                 </span>
-              </td>
-              <td class="description-cell">{{ cat.description || '-' }}</td>
-              <td class="date-cell">{{ cat.created_at | date:'short' }}</td>
-              <td class="actions-cell">
-                <button class="btn-icon btn-edit" (click)="openEditModal(cat)" title="Edit">
-                  ✏️
+                <button
+                  class="btn-cat btn-save-weight"
+                  (click)="categorizeWithWeight(suggestion, weightSlider.valueAsNumber)"
+                  [disabled]="saving"
+                >
+                  Save
                 </button>
-                <button class="btn-icon btn-delete" (click)="deleteCategory(cat)" title="Delete">
-                  🗑️
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <!-- Categories Table -->
+      <div class="card">
+        <div class="card-header">
+          <h2>All Apps ({{ categories.length }}) — {{ getPositionTitle() }}</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="categories.length === 0" class="empty-state">
+            <p>No apps registered yet. Register apps or categorize from the uncategorized list above.</p>
+          </div>
+
+          <table *ngIf="categories.length > 0" class="categories-table">
+            <thead>
+              <tr>
+                <th>Application</th>
+                <th>Process</th>
+                <th>Weight for {{ getPositionTitle() }}</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let cat of categories">
+                <td>{{ cat.display_name }}</td>
+                <td class="process-name">{{ cat.process_name }}</td>
+                <td class="weight-column">
+                  <div class="weight-cell">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      [value]="getWeightForApp(cat.id)"
+                      class="weight-slider weight-slider-row"
+                      (change)="setWeightForApp(cat.id, $any($event.target).valueAsNumber)"
+                      [disabled]="savingWeightIds.has(cat.id)"
+                    />
+                    <span class="weight-value-sm" [style.color]="getWeightColor(getWeightForApp(cat.id))">
+                      {{ formatWeight(getWeightForApp(cat.id)) }}
+                    </span>
+                    <span class="weight-source" *ngIf="hasPositionWeight(cat.id)">set</span>
+                    <span class="weight-source fallback" *ngIf="!hasPositionWeight(cat.id)">default</span>
+                    <button
+                      *ngIf="hasPositionWeight(cat.id)"
+                      class="btn-icon btn-reset"
+                      title="Reset to default"
+                      (click)="removeWeightForApp(cat.id)"
+                    >&times;</button>
+                  </div>
+                </td>
+                <td class="actions-cell">
+                  <button class="btn-icon btn-edit" (click)="openEditModal(cat)" title="Edit app info">
+                    &#9998;
+                  </button>
+                  <button class="btn-icon btn-delete" (click)="deleteCategory(cat)" title="Delete app">
+                    &#128465;
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </ng-container>
   </div>
 
-  <!-- Modal -->
+  <!-- Register App Modal -->
   <div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>{{ modalMode === 'create' ? 'Add New Category' : 'Edit Category' }}</h2>
+        <h2>{{ modalMode === 'create' ? 'Register New App' : 'Edit App' }}</h2>
         <button class="btn-close" (click)="closeModal()">&times;</button>
       </div>
       <div class="modal-body">
@@ -154,21 +257,12 @@
         </div>
 
         <div class="form-group">
-          <label for="category">Category *</label>
-          <select id="category" class="form-select" [(ngModel)]="formData.category">
-            <option value="PRODUCTIVE">Productive</option>
-            <option value="NEUTRAL">Neutral</option>
-            <option value="NON_PRODUCTIVE">Non-Productive</option>
-          </select>
-        </div>
-
-        <div class="form-group">
           <label for="description">Description</label>
           <textarea
             id="description"
             class="form-textarea"
             [(ngModel)]="formData.description"
-            placeholder="Optional: Why is this app categorized this way?"
+            placeholder="Optional: What is this application used for?"
             rows="3"
           ></textarea>
         </div>
@@ -180,7 +274,7 @@
           (click)="saveCategory()"
           [disabled]="saving || !formData.process_name || !formData.display_name"
         >
-          {{ saving ? 'Saving...' : (modalMode === 'create' ? 'Create' : 'Save') }}
+          {{ saving ? 'Saving...' : (modalMode === 'create' ? 'Register' : 'Save') }}
         </button>
       </div>
     </div>

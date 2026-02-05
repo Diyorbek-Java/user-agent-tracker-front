@@ -219,6 +219,10 @@ export class ProductivityDashboardComponent implements OnInit {
     this.router.navigate(['/department-rules']);
   }
 
+  navigateToPositionWeights(): void {
+    this.router.navigate(['/position-weights']);
+  }
+
   navigateBack(): void {
     this.router.navigate(['/dashboard']);
   }

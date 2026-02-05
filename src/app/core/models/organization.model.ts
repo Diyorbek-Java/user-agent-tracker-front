@@ -56,3 +56,32 @@ export interface DepartmentAppRuleCreate {
   category_override: 'PRODUCTIVE' | 'NEUTRAL' | 'NON_PRODUCTIVE';
   reason?: string;
 }
+
+export interface PositionAppWeight {
+  id: number;
+  position: number;
+  position_title: string;
+  app_category: number;
+  app_display_name: string;
+  app_process_name: string;
+  weight: number;
+  reason: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: number | null;
+  created_by_name: string | null;
+}
+
+export interface PositionAppWeightCreate {
+  position: number;
+  app_category: number;
+  weight: number;
+  reason?: string;
+}
+
+export interface ProductivitySettingsModel {
+  default_weight: number;
+  productive_threshold: number;
+  needs_improvement_threshold: number;
+  updated_at: string;
+}

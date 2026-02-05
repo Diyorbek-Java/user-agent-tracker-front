@@ -47,6 +47,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'position-weights',
+    loadComponent: () => import('./features/position-weights/position-weights.component').then(m => m.PositionWeightsComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'manual-time',
     loadComponent: () => import('./features/manual-time/manual-time.component').then(m => m.ManualTimeComponent),
     canActivate: [authGuard]

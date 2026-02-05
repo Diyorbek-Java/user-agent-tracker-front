@@ -1,0 +1,212 @@
+<div class="weights-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <button class="btn-back" (click)="navigateBack()">← Back</button>
+      <div>
+        <h1>Position App Weights</h1>
+        <p>Configure productivity weights per job position and application</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="btn-primary" (click)="openCreateModal()">+ Add Weight</button>
+      <button class="btn-logout" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading data...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-container">
+    <p>{{ error }}</p>
+    <button class="btn-primary" (click)="loadData()">Retry</button>
+  </div>
+
+  <div *ngIf="!loading && !error" class="content">
+    <!-- Settings Card -->
+    <div class="card settings-card">
+      <div class="card-header">
+        <h2>Productivity Settings</h2>
+      </div>
+      <div class="card-body">
+        <div class="settings-grid">
+          <div class="form-group">
+            <label>Default Weight (uncategorized apps)</label>
+            <div class="weight-input-group">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                [(ngModel)]="settingsForm.default_weight"
+                class="weight-slider"
+              />
+              <span class="weight-value" [style.color]="getWeightColor(settingsForm.default_weight)">
+                {{ formatWeight(settingsForm.default_weight) }}
+              </span>
+            </div>
+            <small>Weight assigned to apps that have no category or position-specific weight</small>
+          </div>
+          <div class="form-group">
+            <label>Productive Threshold (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              [(ngModel)]="settingsForm.productive_threshold"
+              class="form-input"
+            />
+            <small>Score >= this value is considered "Productive"</small>
+          </div>
+          <div class="form-group">
+            <label>Needs Improvement Threshold (%)</label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              [(ngModel)]="settingsForm.needs_improvement_threshold"
+              class="form-input"
+            />
+            <small>Score >= this value is "Needs Improvement", below is "Unproductive"</small>
+          </div>
+          <div class="form-group settings-action">
+            <button class="btn-primary" (click)="saveSettings()" [disabled]="savingSettings">
+              {{ savingSettings ? 'Saving...' : 'Save Settings' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weights Table Card -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Position Weights ({{ filteredWeights.length }})</h2>
+        <div class="filter-group">
+          <label>Filter by Position:</label>
+          <select class="filter-select" [(ngModel)]="filterPosition">
+            <option [ngValue]="undefined">All Positions</option>
+            <option *ngFor="let pos of positions" [ngValue]="pos.id">{{ pos.title }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        <div *ngIf="filteredWeights.length === 0" class="empty-state">
+          <p>No position weights configured yet. Click "+ Add Weight" to create one.</p>
+          <p class="empty-hint">Without position weights, apps fall back to their global category (Productive = 100%, Neutral = default weight, Non-Productive = 0%)</p>
+        </div>
+
+        <table *ngIf="filteredWeights.length > 0" class="weights-table">
+          <thead>
+            <tr>
+              <th>Position</th>
+              <th>Application</th>
+              <th>Weight</th>
+              <th>Reason</th>
+              <th>Created By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let w of filteredWeights">
+              <td class="position-cell">{{ w.position_title }}</td>
+              <td>
+                <div class="app-info">
+                  <span class="app-display">{{ w.app_display_name }}</span>
+                  <span class="app-process">{{ w.app_process_name }}</span>
+                </div>
+              </td>
+              <td>
+                <div class="weight-cell">
+                  <div class="weight-bar-bg">
+                    <div
+                      class="weight-bar-fill"
+                      [style.width.%]="w.weight * 100"
+                      [style.background]="getWeightColor(w.weight)"
+                    ></div>
+                  </div>
+                  <span class="weight-text" [style.color]="getWeightColor(w.weight)">
+                    {{ formatWeight(w.weight) }}
+                  </span>
+                  <span class="weight-label">{{ getWeightLabel(w.weight) }}</span>
+                </div>
+              </td>
+              <td class="reason-cell">{{ w.reason || '-' }}</td>
+              <td class="creator-cell">{{ w.created_by_name || '-' }}</td>
+              <td class="actions-cell">
+                <button class="btn-icon btn-edit" title="Edit" (click)="openEditModal(w)">&#9998;</button>
+                <button class="btn-icon btn-delete" title="Delete" (click)="deleteWeight(w)">&#128465;</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create/Edit Modal -->
+  <div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ modalMode === 'create' ? 'Add Position Weight' : 'Edit Position Weight' }}</h2>
+        <button class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Position</label>
+          <select class="form-select" [(ngModel)]="formData.position" [disabled]="modalMode === 'edit'">
+            <option *ngFor="let pos of positions" [ngValue]="pos.id">{{ pos.title }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Application</label>
+          <select class="form-select" [(ngModel)]="formData.app_category" [disabled]="modalMode === 'edit'">
+            <option *ngFor="let cat of appCategories" [ngValue]="cat.id">
+              {{ cat.display_name }} ({{ cat.process_name }})
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Productivity Weight</label>
+          <div class="weight-input-group">
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              [(ngModel)]="formData.weight"
+              class="weight-slider"
+            />
+            <span class="weight-value" [style.color]="getWeightColor(formData.weight)">
+              {{ formatWeight(formData.weight) }}
+            </span>
+          </div>
+          <div class="weight-scale">
+            <span>0% Unproductive</span>
+            <span>50% Mixed</span>
+            <span>100% Productive</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Reason (optional)</label>
+          <textarea
+            class="form-textarea"
+            [(ngModel)]="formData.reason"
+            placeholder="Why this weight for this position?"
+            rows="3"
+          ></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveWeight()" [disabled]="saving">
+          {{ saving ? 'Saving...' : (modalMode === 'create' ? 'Add Weight' : 'Save Changes') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

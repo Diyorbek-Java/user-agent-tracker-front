@@ -12,7 +12,7 @@
       <select class="filter-select" [(ngModel)]="selectedDays" (change)="onDaysChange()">
         <option *ngFor="let opt of daysOptions" [value]="opt.value">{{ opt.label }}</option>
       </select>
-      <button class="btn-primary" (click)="navigateToAppCategories()">Manage Categories</button>
+      <button class="btn-primary" (click)="navigateToAppCategories()">Categories &amp; Weights</button>
       <button class="btn-secondary" (click)="navigateToDepartmentRules()">Dept Rules</button>
       <button class="btn-logout" (click)="logout()">Logout</button>
     </div>

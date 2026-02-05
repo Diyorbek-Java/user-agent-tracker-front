@@ -3,8 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ProductivityService } from '../../core/services/productivity.service';
+import { OrganizationService } from '../../core/services/organization.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AppCategory, AppCategoryCreate, UncategorizedApp } from '../../core/models/productivity.model';
+import {
+  JobPosition,
+  PositionAppWeight,
+  PositionAppWeightCreate,
+  ProductivitySettingsModel
+} from '../../core/models/organization.model';
 import { User } from '../../core/models/user.model';
 
 @Component({
@@ -18,14 +25,18 @@ export class AppCategoriesComponent implements OnInit {
   currentUser: User | null = null;
   categories: AppCategory[] = [];
   suggestions: UncategorizedApp[] = [];
+  positions: JobPosition[] = [];
+  positionWeights: PositionAppWeight[] = [];
+  settings: ProductivitySettingsModel | null = null;
 
   loading = true;
   loadingSuggestions = false;
   saving = false;
+  savingSettings = false;
   error = '';
 
-  // Filter
-  categoryFilter: string = '';
+  // Position filter (required to categorize)
+  selectedPosition: number | undefined = undefined;
 
   // Modal state
   showModal = false;
@@ -40,19 +51,28 @@ export class AppCategoriesComponent implements OnInit {
     description: ''
   };
 
+  // Settings form
+  settingsForm = {
+    default_weight: 0.5,
+    productive_threshold: 70,
+    needs_improvement_threshold: 50
+  };
+
+  // Track which weights are being saved (by app category id)
+  savingWeightIds: Set<number> = new Set();
+
   get isAdminOrManager(): boolean {
     return this.currentUser?.role === 'ADMIN' || this.currentUser?.role === 'MANAGER';
   }
 
-  get filteredCategories(): AppCategory[] {
-    if (!this.categoryFilter) {
-      return this.categories;
-    }
-    return this.categories.filter(c => c.category === this.categoryFilter);
+  getPositionTitle(): string {
+    const pos = this.positions.find(p => p.id === this.selectedPosition);
+    return pos ? pos.title : '';
   }
 
   constructor(
     private productivityService: ProductivityService,
+    private orgService: OrganizationService,
     private authService: AuthService,
     private router: Router
   ) {}
@@ -65,8 +85,17 @@ export class AppCategoriesComponent implements OnInit {
       return;
     }
 
+    this.loadPositions();
     this.loadCategories();
     this.loadSuggestions();
+    this.loadSettings();
+  }
+
+  loadPositions(): void {
+    this.orgService.getPositions().subscribe({
+      next: (data) => this.positions = data,
+      error: (err) => console.error('Positions error:', err)
+    });
   }
 
   loadCategories(): void {
@@ -101,6 +130,161 @@ export class AppCategoriesComponent implements OnInit {
     });
   }
 
+  loadSettings(): void {
+    this.orgService.getProductivitySettings().subscribe({
+      next: (data) => {
+        this.settings = data;
+        this.settingsForm = {
+          default_weight: data.default_weight,
+          productive_threshold: data.productive_threshold,
+          needs_improvement_threshold: data.needs_improvement_threshold
+        };
+      },
+      error: (err) => console.error('Settings error:', err)
+    });
+  }
+
+  loadPositionWeights(): void {
+    if (!this.selectedPosition) {
+      this.positionWeights = [];
+      return;
+    }
+    this.orgService.getPositionWeights(this.selectedPosition).subscribe({
+      next: (data) => this.positionWeights = data,
+      error: (err) => console.error('Weights error:', err)
+    });
+  }
+
+  onPositionChange(): void {
+    this.loadPositionWeights();
+  }
+
+  // Get the weight for a specific app category in the selected position
+  getWeightForApp(appCategoryId: number): number {
+    const pw = this.positionWeights.find(w => w.app_category === appCategoryId);
+    if (pw) return pw.weight;
+    // Fall back to category-based default
+    const cat = this.categories.find(c => c.id === appCategoryId);
+    if (cat) {
+      if (cat.category === 'PRODUCTIVE') return 1.0;
+      if (cat.category === 'NON_PRODUCTIVE') return 0.0;
+    }
+    return this.settings?.default_weight ?? 0.5;
+  }
+
+  // Check if a position-specific weight exists (vs fallback)
+  hasPositionWeight(appCategoryId: number): boolean {
+    return this.positionWeights.some(w => w.app_category === appCategoryId);
+  }
+
+  // Get the PositionAppWeight record if exists
+  getPositionWeight(appCategoryId: number): PositionAppWeight | undefined {
+    return this.positionWeights.find(w => w.app_category === appCategoryId);
+  }
+
+  // Save or update a weight for the selected position + app
+  setWeightForApp(appCategoryId: number, weight: number): void {
+    if (!this.selectedPosition) return;
+    this.savingWeightIds.add(appCategoryId);
+
+    const existing = this.getPositionWeight(appCategoryId);
+    const data: PositionAppWeightCreate = {
+      position: this.selectedPosition,
+      app_category: appCategoryId,
+      weight: weight
+    };
+
+    const obs = existing
+      ? this.orgService.updatePositionWeight(existing.id, { weight })
+      : this.orgService.createPositionWeight(data);
+
+    obs.subscribe({
+      next: () => {
+        this.savingWeightIds.delete(appCategoryId);
+        this.loadPositionWeights();
+      },
+      error: (err) => {
+        console.error('Save weight error:', err);
+        this.savingWeightIds.delete(appCategoryId);
+        alert('Failed to save weight: ' + (err.error?.non_field_errors?.[0] || err.error?.detail || err.message));
+      }
+    });
+  }
+
+  removeWeightForApp(appCategoryId: number): void {
+    const existing = this.getPositionWeight(appCategoryId);
+    if (!existing) return;
+    if (!confirm('Remove weight for this position? App will use the default weight instead.')) return;
+
+    this.orgService.deletePositionWeight(existing.id).subscribe({
+      next: () => this.loadPositionWeights(),
+      error: (err) => {
+        console.error('Delete weight error:', err);
+        alert('Failed to remove weight');
+      }
+    });
+  }
+
+  // Categorize uncategorized app: register it + set weight for the selected position
+  categorizeWithWeight(suggestion: UncategorizedApp, weight: number): void {
+    if (!this.selectedPosition) return;
+    this.saving = true;
+
+    // Register the app in AppCategory (category field is just informational now)
+    const catData: AppCategoryCreate = {
+      process_name: suggestion.process_name,
+      display_name: suggestion.display_name,
+      category: 'NEUTRAL',
+      description: ''
+    };
+
+    this.productivityService.createAppCategory(catData).subscribe({
+      next: (createdCat) => {
+        // Create the position-specific weight
+        const weightData: PositionAppWeightCreate = {
+          position: this.selectedPosition!,
+          app_category: createdCat.id,
+          weight: weight
+        };
+        this.orgService.createPositionWeight(weightData).subscribe({
+          next: () => {
+            this.saving = false;
+            this.loadCategories();
+            this.loadSuggestions();
+            this.loadPositionWeights();
+          },
+          error: (err) => {
+            console.error('Weight creation error:', err);
+            this.saving = false;
+            // App was registered but weight failed - still reload
+            this.loadCategories();
+            this.loadSuggestions();
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Save error:', err);
+        this.saving = false;
+        alert('Failed to register app: ' + (err.error?.process_name?.[0] || err.message));
+      }
+    });
+  }
+
+  saveSettings(): void {
+    this.savingSettings = true;
+    this.orgService.updateProductivitySettings(this.settingsForm).subscribe({
+      next: (data) => {
+        this.settings = data;
+        this.savingSettings = false;
+      },
+      error: (err) => {
+        console.error('Save settings error:', err);
+        this.savingSettings = false;
+        alert('Failed to save settings');
+      }
+    });
+  }
+
   openCreateModal(): void {
     this.modalMode = 'create';
     this.editingCategory = null;
@@ -123,17 +307,6 @@ export class AppCategoriesComponent implements OnInit {
       description: category.description || ''
     };
     this.showModal = true;
-  }
-
-  categorizeFromSuggestion(suggestion: UncategorizedApp, category: 'PRODUCTIVE' | 'NEUTRAL' | 'NON_PRODUCTIVE'): void {
-    this.formData = {
-      process_name: suggestion.process_name,
-      display_name: suggestion.display_name,
-      category: category,
-      description: ''
-    };
-
-    this.saveCategory();
   }
 
   closeModal(): void {
@@ -187,12 +360,23 @@ export class AppCategoriesComponent implements OnInit {
       next: () => {
         this.loadCategories();
         this.loadSuggestions();
+        if (this.selectedPosition) this.loadPositionWeights();
       },
       error: (err) => {
         console.error('Delete error:', err);
         alert('Failed to delete category');
       }
     });
+  }
+
+  getWeightColor(weight: number): string {
+    if (weight >= 0.7) return '#10b981';
+    if (weight >= 0.4) return '#f59e0b';
+    return '#ef4444';
+  }
+
+  formatWeight(weight: number): string {
+    return (weight * 100).toFixed(0) + '%';
   }
 
   getCategoryClass(category: string): string {
