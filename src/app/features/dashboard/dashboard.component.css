@@ -484,6 +484,29 @@
   font-size: 14px;
 }
 
+.banner-actions {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.btn-trends {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-trends:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
 /* Breakdown Grid */
 .breakdown-grid {
   display: grid;
@@ -645,14 +668,26 @@
 
 .activity-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 12px 5px;
   border-bottom: 1px solid #f1f5f9;
+  gap: 12px;
 }
 
 .activity-item:last-child {
   border-bottom: none;
+}
+
+.activity-app-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .activity-left {
@@ -660,11 +695,12 @@
   min-width: 0;
 }
 
-.activity-process {
+.activity-app-name {
   display: block;
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
-  margin-bottom: 2px;
+  font-size: 14px;
+  margin-bottom: 3px;
 }
 
 .activity-window {
@@ -674,7 +710,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 400px;
+  max-width: 500px;
 }
 
 .activity-right {

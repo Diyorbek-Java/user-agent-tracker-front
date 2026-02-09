@@ -184,12 +184,52 @@
           </div>
         </div>
       </div>
+
+      <!-- Recent Activities (visible to manager) -->
+      <div class="card activities-card">
+        <div class="card-header">
+          <h2>Recent Activities</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="loadingActivities" class="loading-inline">
+            <div class="spinner-small"></div>
+            <span>Loading activities...</span>
+          </div>
+
+          <div *ngIf="!loadingActivities && groupedActivities.length === 0" class="empty-state">
+            <p>No recent activities</p>
+          </div>
+
+          <div *ngFor="let group of groupedActivities" class="activity-group">
+            <div class="activity-group-header">
+              <span class="group-label">{{ group.label }}</span>
+              <span class="group-duration">Total: {{ formatDuration(group.totalDuration) }}</span>
+            </div>
+            <div class="activity-list">
+              <div *ngFor="let activity of group.activities.slice(0, 15)" class="activity-item">
+                <div class="activity-app-icon">💻</div>
+                <div class="activity-left">
+                  <span class="activity-app-name">{{ formatProcessName(activity.process_name) }}</span>
+                  <span class="activity-window" *ngIf="activity.window_title">{{ activity.window_title }}</span>
+                </div>
+                <div class="activity-right">
+                  <span class="activity-time">{{ formatTime(activity.start_time) }}</span>
+                  <span class="activity-duration">{{ formatDuration(activity.duration) }}</span>
+                </div>
+              </div>
+              <div *ngIf="group.activities.length > 15" class="more-activities">
+                +{{ group.activities.length - 15 }} more activities
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Dashboard Content for Employee -->
   <div *ngIf="!loading && !error && !isAdminOrManager" class="dashboard-content">
-    <!-- Productivity Score Banner -->
+    <!-- Today's Productivity Score Banner -->
     <div *ngIf="myProductivity" class="productivity-banner">
       <div class="score-circle-large" [style.border-color]="getScoreColor(myProductivity.productivity_score)">
         <span class="score-value" [style.color]="getScoreColor(myProductivity.productivity_score)">
@@ -198,15 +238,18 @@
         <span class="score-label-text">Productivity</span>
       </div>
       <div class="productivity-details">
-        <h2>Your Productivity Score</h2>
+        <h2>Today's Productivity</h2>
         <p class="status-text" [ngClass]="getStatusClass(myProductivity.status)">
           {{ getStatusLabel(myProductivity.status) }}
         </p>
-        <p class="period-text">Last 7 days ({{ myProductivity.period.from }} - {{ myProductivity.period.to }})</p>
+        <p class="period-text">{{ myProductivity.period.from }}</p>
+      </div>
+      <div class="banner-actions">
+        <button class="btn-trends" (click)="navigateToTrends()">View Weekly/Monthly Trends</button>
       </div>
     </div>
 
-    <!-- Breakdown Cards -->
+    <!-- Today's Time Breakdown -->
     <div *ngIf="myProductivity" class="breakdown-grid">
       <div class="breakdown-card productive-card">
         <div class="breakdown-icon">✅</div>
@@ -244,14 +287,14 @@
 
     <!-- Main Content Grid for Employee -->
     <div class="content-grid">
-      <!-- Top Apps with Categories -->
+      <!-- Today's Top Apps -->
       <div class="card">
         <div class="card-header">
-          <h2>📱 Your Top Applications</h2>
+          <h2>Today's Applications</h2>
         </div>
         <div class="card-body">
           <div *ngIf="!myProductivity || myProductivity.top_apps.length === 0" class="empty-state">
-            <p>No application data available</p>
+            <p>No application data for today</p>
           </div>
           <div *ngFor="let app of myProductivity?.top_apps" class="app-detail-item">
             <div class="app-left">
@@ -271,39 +314,31 @@
         </div>
       </div>
 
-      <!-- Daily Trend -->
-      <div class="card">
+      <!-- Today's Quick Stats -->
+      <div class="card" *ngIf="dashboardStats">
         <div class="card-header">
-          <h2>📈 Daily Productivity Trend</h2>
+          <h2>Today's Stats</h2>
         </div>
         <div class="card-body">
-          <div *ngIf="!myProductivity || myProductivity.daily_trend.length === 0" class="empty-state">
-            <p>No trend data available</p>
+          <div class="summary-item">
+            <span class="summary-label">Active Time</span>
+            <span class="summary-value">{{ formatHours(dashboardStats.today_active_time) }}</span>
           </div>
-          <div *ngIf="myProductivity && myProductivity.daily_trend.length > 0" class="productivity-chart">
-            <div *ngFor="let day of myProductivity.daily_trend" class="productivity-bar-container">
-              <div class="productivity-bar-wrapper">
-                <div
-                  class="productivity-bar"
-                  [style.height.%]="day.score"
-                  [style.background]="getScoreColor(day.score)"
-                >
-                </div>
-              </div>
-              <div class="productivity-label">
-                <div class="day-label">{{ formatDate(day.date) }}</div>
-                <div class="score-label">{{ day.score }}%</div>
-                <div class="hours-label">{{ formatHours(day.hours) }}</div>
-              </div>
-            </div>
+          <div class="summary-item">
+            <span class="summary-label">Sessions</span>
+            <span class="summary-value">{{ dashboardStats.total_sessions }}</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Activities</span>
+            <span class="summary-value">{{ dashboardStats.total_activities }}</span>
           </div>
         </div>
       </div>
 
-      <!-- Recent Activities by Day -->
+      <!-- Today's Recent Activities -->
       <div class="card activities-card">
         <div class="card-header">
-          <h2>🕐 Recent Activities</h2>
+          <h2>Recent Activities</h2>
         </div>
         <div class="card-body">
           <div *ngIf="loadingActivities" class="loading-inline">
@@ -312,7 +347,7 @@
           </div>
 
           <div *ngIf="!loadingActivities && groupedActivities.length === 0" class="empty-state">
-            <p>No recent activities</p>
+            <p>No activities today</p>
           </div>
 
           <div *ngFor="let group of groupedActivities" class="activity-group">
@@ -321,9 +356,10 @@
               <span class="group-duration">Total: {{ formatDuration(group.totalDuration) }}</span>
             </div>
             <div class="activity-list">
-              <div *ngFor="let activity of group.activities.slice(0, 10)" class="activity-item">
+              <div *ngFor="let activity of group.activities.slice(0, 15)" class="activity-item">
+                <div class="activity-app-icon">💻</div>
                 <div class="activity-left">
-                  <span class="activity-process">{{ activity.process_name }}</span>
+                  <span class="activity-app-name">{{ formatProcessName(activity.process_name) }}</span>
                   <span class="activity-window" *ngIf="activity.window_title">{{ activity.window_title }}</span>
                 </div>
                 <div class="activity-right">
@@ -331,35 +367,10 @@
                   <span class="activity-duration">{{ formatDuration(activity.duration) }}</span>
                 </div>
               </div>
-              <div *ngIf="group.activities.length > 10" class="more-activities">
-                +{{ group.activities.length - 10 }} more activities
+              <div *ngIf="group.activities.length > 15" class="more-activities">
+                +{{ group.activities.length - 15 }} more activities
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Stats -->
-      <div class="card" *ngIf="dashboardStats">
-        <div class="card-header">
-          <h2>📊 Quick Stats</h2>
-        </div>
-        <div class="card-body">
-          <div class="summary-item">
-            <span class="summary-label">Total Sessions</span>
-            <span class="summary-value">{{ dashboardStats.total_sessions }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Today's Active Time</span>
-            <span class="summary-value">{{ formatHours(dashboardStats.today_active_time) }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">This Week</span>
-            <span class="summary-value">{{ formatHours(dashboardStats.week_active_time) }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Total Activities</span>
-            <span class="summary-value">{{ dashboardStats.total_activities }}</span>
           </div>
         </div>
       </div>

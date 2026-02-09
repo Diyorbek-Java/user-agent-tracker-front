@@ -1,0 +1,164 @@
+<div class="trends-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <button class="btn-back" (click)="navigateBack()">← Back to Dashboard</button>
+      <div>
+        <h1>Productivity Trends</h1>
+        <p *ngIf="currentUser">{{ currentUser.full_name }}</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="period-selector">
+        <button
+          class="period-btn"
+          [class.active]="selectedPeriod === 'weekly'"
+          (click)="selectedPeriod = 'weekly'; onPeriodChange()"
+        >Weekly</button>
+        <button
+          class="period-btn"
+          [class.active]="selectedPeriod === 'monthly'"
+          (click)="selectedPeriod = 'monthly'; onPeriodChange()"
+        >Monthly</button>
+      </div>
+      <button class="btn-logout" (click)="logout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Loading trends...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="error-container">
+    <p>{{ error }}</p>
+    <button class="btn-primary" (click)="loadData()">Retry</button>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error && productivityData" class="content">
+    <!-- Period Summary Bar -->
+    <div class="summary-bar">
+      <div class="summary-stat">
+        <span class="summary-label">Period</span>
+        <span class="summary-value">{{ productivityData.period.from }} - {{ productivityData.period.to }}</span>
+      </div>
+      <div class="summary-stat">
+        <span class="summary-label">Average Score</span>
+        <span class="summary-value score" [style.color]="getScoreColor(productivityData.productivity_score)">
+          {{ productivityData.productivity_score }}%
+        </span>
+      </div>
+      <div class="summary-stat">
+        <span class="summary-label">Status</span>
+        <span class="status-badge" [ngClass]="getStatusClass(productivityData.status)">
+          {{ getStatusLabel(productivityData.status) }}
+        </span>
+      </div>
+      <div class="summary-stat">
+        <span class="summary-label">Total Tracked</span>
+        <span class="summary-value">{{ formatDuration(productivityData.total_tracked_hours) }}</span>
+      </div>
+    </div>
+
+    <!-- Line Chart -->
+    <div class="card chart-card">
+      <div class="card-header">
+        <h2>{{ selectedPeriod === 'weekly' ? 'Last 7 Days' : 'Last 30 Days' }} — Productivity Trend</h2>
+      </div>
+      <div class="card-body">
+        <div *ngIf="productivityData.daily_trend.length === 0" class="empty-state">
+          <p>No trend data available for this period</p>
+        </div>
+        <div *ngIf="productivityData.daily_trend.length > 0" class="chart-wrapper">
+          <canvas #trendChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Grid: Breakdown + Top Apps -->
+    <div class="bottom-grid">
+      <!-- Time Breakdown -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Time Breakdown</h2>
+        </div>
+        <div class="card-body">
+          <div class="breakdown-list">
+            <div class="breakdown-row productive">
+              <div class="breakdown-bar-label">
+                <span class="dot dot-productive"></span>
+                <span>Productive</span>
+              </div>
+              <div class="breakdown-bar-track">
+                <div class="breakdown-bar-fill fill-productive"
+                     [style.width.%]="productivityData.breakdown.productive.percentage"></div>
+              </div>
+              <div class="breakdown-values">
+                <span class="bv-time">{{ formatDuration(productivityData.breakdown.productive.hours) }}</span>
+                <span class="bv-pct">{{ productivityData.breakdown.productive.percentage }}%</span>
+              </div>
+            </div>
+            <div class="breakdown-row neutral">
+              <div class="breakdown-bar-label">
+                <span class="dot dot-neutral"></span>
+                <span>Neutral</span>
+              </div>
+              <div class="breakdown-bar-track">
+                <div class="breakdown-bar-fill fill-neutral"
+                     [style.width.%]="productivityData.breakdown.neutral.percentage"></div>
+              </div>
+              <div class="breakdown-values">
+                <span class="bv-time">{{ formatDuration(productivityData.breakdown.neutral.hours) }}</span>
+                <span class="bv-pct">{{ productivityData.breakdown.neutral.percentage }}%</span>
+              </div>
+            </div>
+            <div class="breakdown-row unproductive">
+              <div class="breakdown-bar-label">
+                <span class="dot dot-unproductive"></span>
+                <span>Non-Productive</span>
+              </div>
+              <div class="breakdown-bar-track">
+                <div class="breakdown-bar-fill fill-unproductive"
+                     [style.width.%]="productivityData.breakdown.non_productive.percentage"></div>
+              </div>
+              <div class="breakdown-values">
+                <span class="bv-time">{{ formatDuration(productivityData.breakdown.non_productive.hours) }}</span>
+                <span class="bv-pct">{{ productivityData.breakdown.non_productive.percentage }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Apps for Period -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Top Applications</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="productivityData.top_apps.length === 0" class="empty-state">
+            <p>No application data</p>
+          </div>
+          <div *ngFor="let app of productivityData.top_apps" class="app-item">
+            <div class="app-info">
+              <span class="app-icon">💻</span>
+              <div>
+                <div class="app-name">{{ app.name }}</div>
+                <span class="category-tag" [ngClass]="getCategoryClass(app.category)">
+                  {{ app.category === 'PRODUCTIVE' ? 'Productive' : app.category === 'NON_PRODUCTIVE' ? 'Non-Productive' : 'Neutral' }}
+                </span>
+              </div>
+            </div>
+            <div class="app-time">
+              <div class="app-hours">{{ formatDuration(app.hours) }}</div>
+              <div class="app-sessions">{{ app.count }} sessions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

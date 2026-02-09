@@ -87,6 +87,7 @@ export class DashboardComponent implements OnInit {
           this.selectedUserName = this.currentUser.full_name;
         }
         this.loadDashboardData();
+        this.loadActivities();
       },
       error: (err) => {
         console.error('Error loading user list:', err);
@@ -110,6 +111,7 @@ export class DashboardComponent implements OnInit {
     }
 
     this.loadDashboardData();
+    this.loadActivities();
   }
 
   loadDashboardData(): void {
@@ -155,7 +157,7 @@ export class DashboardComponent implements OnInit {
   loadMyProductivity(): void {
     if (!this.currentUser) return;
 
-    this.productivityService.getEmployeeDetail(this.currentUser.id, 7).subscribe({
+    this.productivityService.getEmployeeDetail(this.currentUser.id, 1).subscribe({
       next: (data) => {
         this.myProductivity = data;
       },
@@ -166,10 +168,17 @@ export class DashboardComponent implements OnInit {
   }
 
   loadMyActivities(): void {
-    this.loadingActivities = true;
-    const days = this.selectedPeriod === 'today' ? 1 : this.selectedPeriod === 'yesterday' ? 2 : 7;
+    this.loadActivities();
+  }
 
-    this.dashboardService.getMyActivities(1, 100, {}).subscribe({
+  loadActivities(): void {
+    this.loadingActivities = true;
+    const filters: any = {};
+    if (this.selectedUserId) {
+      filters.user_id = this.selectedUserId;
+    }
+
+    this.dashboardService.getMyActivities(1, 100, filters).subscribe({
       next: (data) => {
         this.groupActivitiesByDate(data.results);
         this.loadingActivities = false;
@@ -257,6 +266,49 @@ export class DashboardComponent implements OnInit {
     return '#ef4444';
   }
 
+  formatProcessName(processName: string): string {
+    // Common process name → display name mapping
+    const knownApps: { [key: string]: string } = {
+      'chrome.exe': 'Google Chrome',
+      'firefox.exe': 'Firefox',
+      'msedge.exe': 'Microsoft Edge',
+      'code.exe': 'Visual Studio Code',
+      'idea64.exe': 'IntelliJ IDEA',
+      'devenv.exe': 'Visual Studio',
+      'slack.exe': 'Slack',
+      'teams.exe': 'Microsoft Teams',
+      'outlook.exe': 'Microsoft Outlook',
+      'explorer.exe': 'File Explorer',
+      'notepad.exe': 'Notepad',
+      'notepad++.exe': 'Notepad++',
+      'discord.exe': 'Discord',
+      'spotify.exe': 'Spotify',
+      'telegram.exe': 'Telegram',
+      'whatsapp.exe': 'WhatsApp',
+      'zoom.exe': 'Zoom',
+      'postman.exe': 'Postman',
+      'terminal.exe': 'Terminal',
+      'windowsterminal.exe': 'Windows Terminal',
+      'powershell.exe': 'PowerShell',
+      'cmd.exe': 'Command Prompt',
+      'winword.exe': 'Microsoft Word',
+      'excel.exe': 'Microsoft Excel',
+      'powerpnt.exe': 'Microsoft PowerPoint',
+      'onenote.exe': 'OneNote',
+      'figma.exe': 'Figma',
+      'pycharm64.exe': 'PyCharm',
+      'webstorm64.exe': 'WebStorm',
+      'datagrip64.exe': 'DataGrip',
+    };
+
+    const lower = processName.toLowerCase();
+    if (knownApps[lower]) return knownApps[lower];
+
+    // Fallback: remove .exe and capitalize
+    let name = processName.replace(/\.exe$/i, '');
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  }
+
   formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -316,5 +368,9 @@ export class DashboardComponent implements OnInit {
 
   navigateToManualTime(): void {
     this.router.navigate(['/manual-time']);
+  }
+
+  navigateToTrends(): void {
+    this.router.navigate(['/productivity-trends']);
   }
 }

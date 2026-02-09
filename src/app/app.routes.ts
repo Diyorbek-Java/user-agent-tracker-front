@@ -52,6 +52,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'productivity-trends',
+    loadComponent: () => import('./features/productivity-trends/productivity-trends.component').then(m => m.ProductivityTrendsComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'manual-time',
     loadComponent: () => import('./features/manual-time/manual-time.component').then(m => m.ManualTimeComponent),
     canActivate: [authGuard]
