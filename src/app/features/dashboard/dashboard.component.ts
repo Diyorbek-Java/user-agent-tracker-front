@@ -373,4 +373,12 @@ export class DashboardComponent implements OnInit {
   navigateToTrends(): void {
     this.router.navigate(['/productivity-trends']);
   }
+
+  navigateToShiftManagement(): void {
+    this.router.navigate(['/shift-management']);
+  }
+
+  navigateToNetworkActivity(): void {
+    this.router.navigate(['/network-activity']);
+  }
 }

@@ -1,0 +1,182 @@
+<div class="shift-container">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <button class="btn-back" (click)="navigateToDashboard()">← Dashboard</button>
+      <h1>Shift Management</h1>
+    </div>
+  </header>
+
+  <!-- Messages -->
+  <div *ngIf="successMessage" class="message success-message">{{ successMessage }}</div>
+  <div *ngIf="errorMessage" class="message error-message">{{ errorMessage }}</div>
+
+  <!-- User List (Admin/Manager) -->
+  <div *ngIf="isAdminOrManager && !showEditor" class="content-area">
+    <!-- Search -->
+    <div class="search-bar">
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search by name, employee ID, or department..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange()"
+      />
+    </div>
+
+    <div *ngIf="loadingList" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading employees...</p>
+    </div>
+
+    <div *ngIf="!loadingList" class="card">
+      <div class="card-header">
+        <h2>Employee Shifts ({{ filteredSummaries.length }})</h2>
+      </div>
+      <div class="card-body">
+        <div *ngIf="filteredSummaries.length === 0" class="empty-state">
+          <p>No employees found.</p>
+        </div>
+
+        <table *ngIf="filteredSummaries.length > 0" class="data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Weekly Hours</th>
+              <th>Working Days</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of filteredSummaries">
+              <td>
+                <div class="user-cell">
+                  <span class="user-name">{{ user.full_name }}</span>
+                  <span class="user-id">{{ user.employee_id }}</span>
+                </div>
+              </td>
+              <td>{{ user.department || 'N/A' }}</td>
+              <td>
+                <span class="hours-badge" [class.no-shifts]="!user.has_shifts">
+                  {{ user.has_shifts ? user.total_weekly_hours + 'h' : '-' }}
+                </span>
+              </td>
+              <td>{{ user.has_shifts ? user.working_days + ' days' : '-' }}</td>
+              <td>
+                <span class="status-badge" [class.configured]="user.has_shifts" [class.not-configured]="!user.has_shifts">
+                  {{ user.has_shifts ? 'Configured' : 'Not Set' }}
+                </span>
+              </td>
+              <td>
+                <button class="btn-edit" (click)="openUserShifts(user.id, user.full_name)">
+                  {{ user.has_shifts ? 'Edit' : 'Set Shifts' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shift Editor -->
+  <div *ngIf="showEditor" class="content-area">
+    <div class="editor-header">
+      <button *ngIf="isAdminOrManager" class="btn-back-light" (click)="closeEditor()">← Back to List</button>
+      <h2>{{ selectedUserName }}'s Working Schedule</h2>
+      <span *ngIf="userShiftsData" class="weekly-total">
+        Total: {{ userShiftsData.total_weekly_hours }}h / week
+      </span>
+    </div>
+
+    <div *ngIf="loadingDetail" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading shifts...</p>
+    </div>
+
+    <div *ngIf="!loadingDetail" class="card">
+      <div class="card-header">
+        <h2>Weekly Schedule</h2>
+        <div class="header-actions" *ngIf="isAdminOrManager">
+          <button class="btn-copy" (click)="applyToWeekdays()">Copy Mon → Tue-Fri</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="shift-grid">
+          <!-- Header row -->
+          <div class="shift-row shift-header-row">
+            <div class="shift-col day-col">Day</div>
+            <div class="shift-col time-col">Start Time</div>
+            <div class="shift-col time-col">End Time</div>
+            <div class="shift-col lunch-col">Lunch Break</div>
+            <div class="shift-col duration-col">Net Hours</div>
+            <div class="shift-col toggle-col">Day Off</div>
+          </div>
+
+          <!-- Day rows -->
+          <div *ngFor="let row of shiftForm" class="shift-row" [class.day-off-row]="row.is_day_off">
+            <div class="shift-col day-col">
+              <span class="day-label">{{ row.day_name }}</span>
+            </div>
+            <div class="shift-col time-col">
+              <input
+                type="time"
+                class="time-input"
+                [(ngModel)]="row.start_time"
+                [disabled]="row.is_day_off || !isAdminOrManager"
+              />
+            </div>
+            <div class="shift-col time-col">
+              <input
+                type="time"
+                class="time-input"
+                [(ngModel)]="row.end_time"
+                [disabled]="row.is_day_off || !isAdminOrManager"
+              />
+            </div>
+            <div class="shift-col lunch-col">
+              <select
+                class="lunch-select"
+                [(ngModel)]="row.lunch_break_minutes"
+                [disabled]="row.is_day_off || !isAdminOrManager"
+              >
+                <option [ngValue]="0">No break</option>
+                <option [ngValue]="30">30 min</option>
+                <option [ngValue]="45">45 min</option>
+                <option [ngValue]="60">1 hour</option>
+                <option [ngValue]="90">1.5 hours</option>
+              </select>
+            </div>
+            <div class="shift-col duration-col">
+              <span class="duration-text" [class.day-off-text]="row.is_day_off">
+                {{ getShiftDuration(row) }}
+              </span>
+            </div>
+            <div class="shift-col toggle-col">
+              <label class="toggle" *ngIf="isAdminOrManager">
+                <input type="checkbox" [checked]="row.is_day_off" (change)="toggleDayOff(row)" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span *ngIf="!isAdminOrManager" class="day-off-label">{{ row.is_day_off ? 'Yes' : 'No' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="form-summary">
+          <span class="summary-label">Total Weekly Hours:</span>
+          <span class="summary-value">{{ getTotalFormHours() }}h</span>
+        </div>
+
+        <!-- Save Button -->
+        <div *ngIf="isAdminOrManager" class="form-actions">
+          <button class="btn-save" (click)="saveShifts()" [disabled]="saving">
+            {{ saving ? 'Saving...' : 'Save Shifts' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

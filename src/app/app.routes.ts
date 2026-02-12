@@ -62,6 +62,16 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'shift-management',
+    loadComponent: () => import('./features/shift-management/shift-management.component').then(m => m.ShiftManagementComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'network-activity',
+    loadComponent: () => import('./features/network-activity/network-activity.component').then(m => m.NetworkActivityComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: '**',
     redirectTo: '/dashboard'
   }

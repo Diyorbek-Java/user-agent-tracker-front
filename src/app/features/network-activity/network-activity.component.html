@@ -1,0 +1,238 @@
+<div class="network-container">
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <button class="btn-back" (click)="navigateToDashboard()">← Dashboard</button>
+      <h1>Network Activity</h1>
+    </div>
+    <div class="header-controls">
+      <!-- User Selector -->
+      <div *ngIf="isAdminOrManager" class="user-selector">
+        <label for="userSelect">User:</label>
+        <select id="userSelect" class="select-input" (change)="onUserChange($event)">
+          <option value="me">{{ currentUser?.full_name }} (Me)</option>
+          <option *ngFor="let user of availableUsers" [value]="user.id">
+            {{ user.full_name }}
+          </option>
+        </select>
+      </div>
+      <!-- Days Selector -->
+      <div class="days-selector">
+        <label for="daysSelect">Period:</label>
+        <select id="daysSelect" class="select-input" [(ngModel)]="selectedDays" (change)="onDaysChange()">
+          <option [value]="7">Last 7 days</option>
+          <option [value]="14">Last 14 days</option>
+          <option [value]="30">Last 30 days</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="switchTab('overview')">Overview</button>
+    <button class="tab-btn" [class.active]="activeTab === 'sites'" (click)="switchTab('sites')">Sites</button>
+    <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="switchTab('history')">History</button>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error-banner">
+    <p>{{ error }}</p>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div *ngIf="activeTab === 'overview'" class="tab-content">
+    <div *ngIf="loadingOverview" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading overview...</p>
+    </div>
+
+    <div *ngIf="!loadingOverview && topSitesData">
+      <!-- Stats Cards -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-icon browsing-icon">
+            <span>🌐</span>
+          </div>
+          <div class="stat-info">
+            <h3>{{ formatHours(topSitesData.total_browsing_hours) }}</h3>
+            <p>Total Browsing Time</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon sites-icon">
+            <span>📊</span>
+          </div>
+          <div class="stat-info">
+            <h3>{{ topSitesData.top_sites.length }}</h3>
+            <p>Unique Sites</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon browser-icon">
+            <span>🔍</span>
+          </div>
+          <div class="stat-info">
+            <h3>{{ topSitesData.browser_stats.length }}</h3>
+            <p>Browsers Used</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Domains Chart -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Top Domains</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="topSitesData.top_sites.length === 0" class="empty-state">
+            <p>No browsing data available for the selected period.</p>
+          </div>
+          <div *ngFor="let site of topSitesData.top_sites; let i = index" class="domain-bar-row">
+            <div class="domain-rank">{{ i + 1 }}</div>
+            <div class="domain-info">
+              <div class="domain-name">{{ site.domain }}</div>
+              <div class="domain-bar-track">
+                <div class="domain-bar-fill" [style.width.%]="getBarWidth(site.total_duration)"></div>
+              </div>
+            </div>
+            <div class="domain-stats">
+              <span class="domain-duration">{{ formatDuration(site.total_duration) }}</span>
+              <span class="domain-visits">{{ site.visit_count }} visits</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Browser Distribution -->
+      <div class="card">
+        <div class="card-header">
+          <h2>Browser Distribution</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="topSitesData.browser_stats.length === 0" class="empty-state">
+            <p>No browser data available.</p>
+          </div>
+          <div *ngFor="let browser of topSitesData.browser_stats" class="browser-item">
+            <div class="browser-info">
+              <span class="browser-name">{{ formatBrowserName(browser.browser) }}</span>
+              <span class="browser-process">({{ browser.browser }})</span>
+            </div>
+            <div class="browser-stats">
+              <span class="browser-duration">{{ formatDuration(browser.total_duration) }}</span>
+              <span class="browser-visits">{{ browser.visit_count }} visits</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SITES TAB -->
+  <div *ngIf="activeTab === 'sites'" class="tab-content">
+    <div *ngIf="loadingSites" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading sites...</p>
+    </div>
+
+    <div *ngIf="!loadingSites">
+      <!-- Search -->
+      <div class="search-bar">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search domains..."
+          [(ngModel)]="domainSearch"
+          (input)="onDomainSearchChange()"
+        />
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>All Domains ({{ filteredDomains.length }})</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="filteredDomains.length === 0" class="empty-state">
+            <p>No domains found.</p>
+          </div>
+          <table *ngIf="filteredDomains.length > 0" class="data-table">
+            <thead>
+              <tr>
+                <th>Domain</th>
+                <th>Total Time</th>
+                <th>Visits</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let domain of filteredDomains">
+                <td class="domain-cell">{{ domain.domain }}</td>
+                <td>{{ formatDuration(domain.total_duration) }}</td>
+                <td>{{ domain.visit_count }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div *ngIf="activeTab === 'history'" class="tab-content">
+    <!-- Filters -->
+    <div class="filter-bar">
+      <input
+        type="text"
+        class="filter-input"
+        placeholder="Filter by domain..."
+        [(ngModel)]="filterDomain"
+        (change)="onHistoryFilterChange()"
+      />
+      <input
+        type="text"
+        class="filter-input"
+        placeholder="Filter by browser..."
+        [(ngModel)]="filterBrowser"
+        (change)="onHistoryFilterChange()"
+      />
+      <button class="btn-apply" (click)="onHistoryFilterChange()">Apply</button>
+    </div>
+
+    <div *ngIf="loadingHistory" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading history...</p>
+    </div>
+
+    <div *ngIf="!loadingHistory">
+      <div class="card">
+        <div class="card-header">
+          <h2>Browsing History ({{ historyTotal }} records)</h2>
+        </div>
+        <div class="card-body">
+          <div *ngIf="networkActivities.length === 0" class="empty-state">
+            <p>No browsing history found.</p>
+          </div>
+          <div *ngFor="let activity of networkActivities" class="history-item">
+            <div class="history-icon">🌐</div>
+            <div class="history-info">
+              <div class="history-domain">{{ activity.domain }}</div>
+              <div class="history-title" *ngIf="activity.page_title">{{ activity.page_title }}</div>
+              <div class="history-meta">
+                <span class="history-browser">{{ formatBrowserName(activity.browser_process) }}</span>
+                <span class="history-separator">·</span>
+                <span class="history-time">{{ formatDateTime(activity.start_time) }}</span>
+              </div>
+            </div>
+            <div class="history-duration">{{ formatDuration(activity.duration) }}</div>
+          </div>
+
+          <!-- Pagination -->
+          <div *ngIf="totalPages > 1" class="pagination">
+            <button class="page-btn" [disabled]="historyPage <= 1" (click)="goToPage(historyPage - 1)">Prev</button>
+            <span class="page-info">Page {{ historyPage }} of {{ totalPages }}</span>
+            <button class="page-btn" [disabled]="historyPage >= totalPages" (click)="goToPage(historyPage + 1)">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
