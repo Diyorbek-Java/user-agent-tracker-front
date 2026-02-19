@@ -88,6 +88,16 @@ export class DashboardService {
     return this.http.put<User>(`${this.API_URL}/profile/update/`, data);
   }
 
+  getDayAppSummary(date: string, userId?: number): Observable<{ process_name: string; total_seconds: number; session_count: number }[]> {
+    let params = new HttpParams().set('date', date);
+    if (userId) {
+      params = params.set('user_id', userId.toString());
+    }
+    return this.http.get<{ process_name: string; total_seconds: number; session_count: number }[]>(
+      `${this.API_URL}/day-app-summary/`, { params }
+    );
+  }
+
   // Admin endpoints
   getAllUsersSummary(): Observable<any[]> {
     return this.http.get<any[]>(`${this.API_URL}/admin/users/`);
