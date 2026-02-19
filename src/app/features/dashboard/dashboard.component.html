@@ -96,10 +96,17 @@
       <div class="card productivity-card">
         <div class="card-header">
           <h2>7-Day Productivity Trend</h2>
+          <span *ngIf="selectedDay" class="chart-hint">Click the same bar again to close</span>
         </div>
         <div class="card-body">
           <div class="productivity-chart">
-            <div *ngFor="let day of productivityReport" class="productivity-bar-container">
+            <div
+              *ngFor="let day of productivityReport"
+              class="productivity-bar-container"
+              [class.bar-selected]="selectedDay?.date === day.date"
+              (click)="onDayClick(day)"
+              title="Click to see app breakdown for {{ formatDate(day.date) }}"
+            >
               <div class="productivity-bar-wrapper">
                 <div
                   class="productivity-bar"
@@ -114,6 +121,33 @@
               </div>
             </div>
           </div>
+
+          <!-- Day drill-down panel -->
+          <div *ngIf="selectedDay" class="day-detail-panel">
+            <div class="day-detail-header">
+              <span class="day-detail-title">📅 {{ formatDate(selectedDay.date) }} — App Activity</span>
+              <button class="day-detail-close" (click)="selectedDay = null; dayAppSummary = []">✕</button>
+            </div>
+
+            <div *ngIf="loadingDayActivities" class="loading-inline">
+              <div class="spinner-small"></div>
+              <span>Loading activities...</span>
+            </div>
+
+            <div *ngIf="!loadingDayActivities && dayAppSummary.length === 0" class="empty-state" style="padding: 20px;">
+              <p>No activity data for this day.</p>
+            </div>
+
+            <div *ngIf="!loadingDayActivities && dayAppSummary.length > 0" class="day-app-list">
+              <div *ngFor="let app of dayAppSummary; let i = index" class="day-app-row">
+                <span class="day-app-rank">#{{ i + 1 }}</span>
+                <span class="day-app-icon">💻</span>
+                <span class="day-app-name">{{ app.appName }}</span>
+                <span class="day-app-duration">{{ formatDuration(app.totalSeconds) }}</span>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -151,10 +185,10 @@
           </div>
           <div *ngFor="let session of dashboardStats.recent_sessions" class="session-item">
             <div class="session-info">
-              <div class="session-time">{{ formatTime(session.start_time) }}</div>
+              <div class="session-time">{{ formatDateTime(session.start_time) }}</div>
               <div class="session-status">
-                <span [class.active]="session.is_active" [class.inactive]="!session.is_active">
-                  {{ session.is_active ? 'Active' : 'Completed' }}
+                <span [class.active]="isSessionActive(session)" [class.inactive]="!isSessionActive(session)">
+                  {{ isSessionActive(session) ? 'Active' : 'Completed' }}
                 </span>
               </div>
             </div>

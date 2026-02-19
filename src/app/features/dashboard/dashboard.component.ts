@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ProductivityService } from '../../core/services/productivity.service';
-import { DashboardStats, ActivityTimeline, ProductivityReport, Activity } from '../../core/models/dashboard.model';
+import { DashboardStats, ActivityTimeline, ProductivityReport, Activity, Session } from '../../core/models/dashboard.model';
 import { EmployeeProductivityDetail, AppUsage } from '../../core/models/productivity.model';
 import { User } from '../../core/models/user.model';
 
@@ -43,6 +43,11 @@ export class DashboardComponent implements OnInit {
   availableUsers: User[] = [];
   selectedUserId: number | null = null;
   selectedUserName: string = '';
+
+  // Day drill-down (click on chart bar)
+  selectedDay: ProductivityReport | null = null;
+  dayAppSummary: { appName: string; processName: string; totalSeconds: number }[] = [];
+  loadingDayActivities = false;
 
   // Computed properties for UI
   get productivityColor(): string {
@@ -110,6 +115,8 @@ export class DashboardComponent implements OnInit {
       this.selectedUserName = selectedUser?.full_name || '';
     }
 
+    this.selectedDay = null;
+    this.dayAppSummary = [];
     this.loadDashboardData();
     this.loadActivities();
   }
@@ -335,6 +342,51 @@ export class DashboardComponent implements OnInit {
   formatTime(dateString: string): string {
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  formatDateTime(dateString: string): string {
+    const date = new Date(dateString);
+    const datePart = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timePart = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return `${datePart}  ·  ${timePart}`;
+  }
+
+  isSessionActive(session: Session): boolean {
+    // A session is truly active only when the agent has not closed it (no end_time)
+    return session.is_active && !session.end_time;
+  }
+
+  onDayClick(day: ProductivityReport): void {
+    if (this.selectedDay?.date === day.date) {
+      // Toggle off if same bar clicked again
+      this.selectedDay = null;
+      this.dayAppSummary = [];
+      return;
+    }
+    this.selectedDay = day;
+    this.loadDayActivities(day.date);
+  }
+
+  loadDayActivities(date: string): void {
+    this.loadingDayActivities = true;
+    this.dayAppSummary = [];
+
+    const userId = this.selectedUserId || undefined;
+
+    this.dashboardService.getDayAppSummary(date, userId).subscribe({
+      next: (rows) => {
+        this.dayAppSummary = rows.map(row => ({
+          appName: this.formatProcessName(row.process_name || 'Unknown'),
+          processName: row.process_name,
+          totalSeconds: row.total_seconds || 0
+        }));
+        this.loadingDayActivities = false;
+      },
+      error: (err) => {
+        console.error('Day app summary error:', err);
+        this.loadingDayActivities = false;
+      }
+    });
   }
 
   logout(): void {
