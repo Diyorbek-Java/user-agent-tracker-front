@@ -4,7 +4,8 @@ export interface User {
   email: string;
   full_name: string;
   employee_id: string;
-  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+  role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'ORG_MANAGER' | 'ORG_ADMIN';
+  managed_organization?: number | null;
   department?: string;
   position?: string;
   computer_name?: string;

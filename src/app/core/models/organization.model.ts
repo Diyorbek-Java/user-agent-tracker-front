@@ -1,7 +1,30 @@
+export interface Organization {
+  id: number;
+  name: string;
+  description: string;
+  head_of_organization: number | null;
+  head_name: string | null;
+  is_active: boolean;
+  department_count: number;
+  admin_user_id: number | null;
+  admin_user_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationCreate {
+  name: string;
+  description?: string;
+  head_of_organization?: number | null;
+  is_active?: boolean;
+}
+
 export interface Department {
   id: number;
   name: string;
   description: string;
+  organization: number | null;
+  organization_name: string | null;
   head_of_department: number | null;
   head_name: string | null;
   is_active: boolean;
@@ -13,8 +36,29 @@ export interface Department {
 export interface DepartmentCreate {
   name: string;
   description?: string;
+  organization?: number | null;
   head_of_department?: number | null;
   is_active?: boolean;
+}
+
+export interface OrgUser {
+  id: number;
+  full_name: string;
+  employee_id: string;
+  role: string;
+  department: number | null;
+  department_name: string | null;
+  position: number | null;
+  position_title: string | null;
+}
+
+export interface ShiftDay {
+  day: number;
+  name: string;
+  is_day_off: boolean;
+  start_time: string;
+  end_time: string;
+  lunch_break_minutes: number;
 }
 
 export interface JobPosition {

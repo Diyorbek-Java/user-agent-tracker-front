@@ -96,7 +96,10 @@
           </select>
           <small class="form-hint">
             <span *ngIf="currentUser?.role === 'ADMIN'">
-              As an Admin, you can create Manager or Employee accounts.
+              As an Admin, you can create Manager, Employee, Organization Manager, or Organization Admin accounts.
+            </span>
+            <span *ngIf="currentUser?.role === 'ORG_MANAGER'">
+              As an Organization Manager, you can create Organization Admin or Employee accounts.
             </span>
             <span *ngIf="currentUser?.role === 'MANAGER'">
               As a Manager, you can only create Employee accounts.

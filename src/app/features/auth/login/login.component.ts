@@ -47,6 +47,8 @@ export class LoginComponent {
           this.router.navigate(['/auth/set-password'], {
             queryParams: { email: this.loginForm.value.email }
           });
+        } else if (response.user?.role === 'ORG_MANAGER' || response.user?.role === 'ORG_ADMIN') {
+          this.router.navigate(['/organization']);
         } else {
           this.router.navigate([this.returnUrl]);
         }

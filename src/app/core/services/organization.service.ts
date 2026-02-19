@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
+  Organization,
+  OrganizationCreate,
   Department,
   DepartmentCreate,
   JobPosition,
@@ -11,7 +13,9 @@ import {
   DepartmentAppRuleCreate,
   PositionAppWeight,
   PositionAppWeightCreate,
-  ProductivitySettingsModel
+  ProductivitySettingsModel,
+  OrgUser,
+  ShiftDay
 } from '../models/organization.model';
 
 @Injectable({
@@ -21,6 +25,46 @@ export class OrganizationService {
   private readonly API_URL = '/api/frontend';
 
   constructor(private http: HttpClient) {}
+
+  // Organization endpoints
+  getOrganizations(): Observable<Organization[]> {
+    return this.http.get<any>(`${this.API_URL}/organizations/`).pipe(map(res => res.organizations));
+  }
+  createOrganization(data: OrganizationCreate): Observable<Organization> {
+    return this.http.post<any>(`${this.API_URL}/organizations/`, data).pipe(map(res => res.organization));
+  }
+  updateOrganization(id: number, data: Partial<OrganizationCreate>): Observable<Organization> {
+    return this.http.put<any>(`${this.API_URL}/organizations/${id}/`, data).pipe(map(res => res.organization));
+  }
+  deleteOrganization(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.API_URL}/organizations/${id}/`);
+  }
+
+  // Org users
+  getOrgUsers(): Observable<OrgUser[]> {
+    return this.http.get<any>(`${this.API_URL}/org-users/`).pipe(map(res => res.users));
+  }
+  assignUser(userId: number, data: { department?: number | null; position?: number | null }): Observable<OrgUser> {
+    return this.http.patch<any>(`${this.API_URL}/org-users/${userId}/assign/`, data).pipe(map(res => res.user));
+  }
+  assignOrgAdmin(orgId: number, userId: number | null): Observable<Organization> {
+    return this.http.post<any>(`${this.API_URL}/organizations/${orgId}/assign-admin/`, { user_id: userId }).pipe(map(res => res.organization));
+  }
+
+  // Shifts
+  getUserShifts(userId: number): Observable<any> {
+    return this.http.get<any>(`${this.API_URL}/shifts/${userId}/`);
+  }
+  setUserShifts(userId: number, shifts: ShiftDay[]): Observable<any> {
+    const payload = shifts.map(s => ({
+      day_of_week: s.day,
+      is_day_off: s.is_day_off,
+      start_time: s.is_day_off ? undefined : s.start_time || undefined,
+      end_time: s.is_day_off ? undefined : s.end_time || undefined,
+      lunch_break_minutes: s.lunch_break_minutes
+    }));
+    return this.http.post<any>(`${this.API_URL}/shifts/${userId}/set/`, { shifts: payload });
+  }
 
   // Department endpoints
   getDepartments(): Observable<Department[]> {

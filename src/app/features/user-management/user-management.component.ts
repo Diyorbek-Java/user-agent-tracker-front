@@ -12,7 +12,7 @@ interface CreateUserRequest {
   employee_id: string;
   department?: string;
   position?: string;
-  role: 'MANAGER' | 'EMPLOYEE';
+  role: 'MANAGER' | 'EMPLOYEE' | 'ORG_MANAGER' | 'ORG_ADMIN';
 }
 
 interface CreateUserResponse {
@@ -66,6 +66,13 @@ export class UserManagementComponent implements OnInit {
     if (this.currentUser?.role === 'ADMIN') {
       this.availableRoles = [
         { value: 'MANAGER', label: 'Manager' },
+        { value: 'EMPLOYEE', label: 'Employee' },
+        { value: 'ORG_MANAGER', label: 'Organization Manager' },
+        { value: 'ORG_ADMIN', label: 'Organization Admin' }
+      ];
+    } else if (this.currentUser?.role === 'ORG_MANAGER') {
+      this.availableRoles = [
+        { value: 'ORG_ADMIN', label: 'Organization Admin' },
         { value: 'EMPLOYEE', label: 'Employee' }
       ];
     } else if (this.currentUser?.role === 'MANAGER') {
@@ -77,7 +84,8 @@ export class UserManagementComponent implements OnInit {
   }
 
   get isAdminOrManager(): boolean {
-    return this.currentUser?.role === 'ADMIN' || this.currentUser?.role === 'MANAGER';
+    const r = this.currentUser?.role;
+    return r === 'ADMIN' || r === 'MANAGER' || r === 'ORG_MANAGER';
   }
 
   createUser(): void {

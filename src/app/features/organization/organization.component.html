@@ -5,12 +5,12 @@
       <button class="btn-back" (click)="navigateBack()">← Back</button>
       <div>
         <h1>Organization Management</h1>
-        <p>Manage departments and job positions</p>
+        <p>Manage organizations, departments, positions, users and shifts</p>
       </div>
     </div>
     <div class="header-right">
-      <button class="btn-primary" (click)="activeTab === 'departments' ? openCreateDept() : openCreatePos()">
-        + Add {{ activeTab === 'departments' ? 'Department' : 'Position' }}
+      <button *ngIf="activeTab !== 'users' && activeTab !== 'shifts' && !(isOrgAdmin && activeTab === 'organizations')" class="btn-primary" (click)="onAddClick()">
+        {{ addButton() }}
       </button>
       <button class="btn-logout" (click)="logout()">Logout</button>
     </div>
@@ -18,38 +18,84 @@
 
   <!-- Tabs -->
   <div class="nav-tabs">
+    <button class="tab-btn" [class.active]="activeTab === 'organizations'" (click)="setTab('organizations')">
+      Organizations ({{ organizations.length }})
+    </button>
     <button class="tab-btn" [class.active]="activeTab === 'departments'" (click)="setTab('departments')">
       Departments ({{ departments.length }})
     </button>
     <button class="tab-btn" [class.active]="activeTab === 'positions'" (click)="setTab('positions')">
       Positions ({{ positions.length }})
     </button>
+    <button class="tab-btn" [class.active]="activeTab === 'users'" (click)="setTab('users')">
+      Users ({{ orgUsers.length }})
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'shifts'" (click)="setTab('shifts')">
+      Shifts
+    </button>
   </div>
 
   <!-- Loading -->
   <div *ngIf="loading" class="loading-container">
-    <div class="spinner"></div>
-    <p>Loading...</p>
+    <div class="spinner"></div><p>Loading...</p>
   </div>
-
-  <!-- Error -->
   <div *ngIf="error && !loading" class="error-container">
     <p>{{ error }}</p>
-    <button class="btn-primary" (click)="loadData()">Retry</button>
+    <button class="btn-primary" (click)="loadAll()">Retry</button>
   </div>
 
-  <!-- Departments Tab -->
-  <div *ngIf="!loading && !error && activeTab === 'departments'" class="content">
+  <!-- ===================== ORGANIZATIONS TAB ===================== -->
+  <div *ngIf="!loading && activeTab === 'organizations'" class="content">
+    <div class="card">
+      <div class="card-body">
+        <div *ngIf="organizations.length === 0" class="empty-state">
+          <p>No organizations yet. Click "+ Add Organization" to create one.</p>
+        </div>
+        <table *ngIf="organizations.length > 0" class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Head of Organization</th>
+              <th>Departments</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let org of organizations">
+              <td class="name-cell">{{ org.name }}</td>
+              <td class="desc-cell">{{ org.description || '-' }}</td>
+              <td>{{ org.head_name || 'Not assigned' }}</td>
+              <td>{{ org.department_count }}</td>
+              <td>
+                <span class="status-badge" [class.status-active]="org.is_active" [class.status-inactive]="!org.is_active">
+                  {{ org.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="actions-cell">
+                <button class="btn-icon btn-edit" (click)="openEditOrg(org)" title="Edit">✏️</button>
+                <button class="btn-icon btn-delete" (click)="deleteOrg(org)" title="Delete">🗑️</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== DEPARTMENTS TAB ===================== -->
+  <div *ngIf="!loading && activeTab === 'departments'" class="content">
     <div class="card">
       <div class="card-body">
         <div *ngIf="departments.length === 0" class="empty-state">
           <p>No departments yet. Click "+ Add Department" to create one.</p>
         </div>
-
         <table *ngIf="departments.length > 0" class="data-table">
           <thead>
             <tr>
               <th>Name</th>
+              <th>Organization</th>
               <th>Description</th>
               <th>Head</th>
               <th>Employees</th>
@@ -60,6 +106,7 @@
           <tbody>
             <tr *ngFor="let dept of departments">
               <td class="name-cell">{{ dept.name }}</td>
+              <td>{{ dept.organization_name || '-' }}</td>
               <td class="desc-cell">{{ dept.description || '-' }}</td>
               <td>{{ dept.head_name || 'Not assigned' }}</td>
               <td>{{ dept.employee_count }}</td>
@@ -79,20 +126,19 @@
     </div>
   </div>
 
-  <!-- Positions Tab -->
-  <div *ngIf="!loading && !error && activeTab === 'positions'" class="content">
+  <!-- ===================== POSITIONS TAB ===================== -->
+  <div *ngIf="!loading && activeTab === 'positions'" class="content">
     <div class="card">
       <div class="card-body">
         <div *ngIf="positions.length === 0" class="empty-state">
           <p>No positions yet. Click "+ Add Position" to create one.</p>
         </div>
-
         <table *ngIf="positions.length > 0" class="data-table">
           <thead>
             <tr>
               <th>Title</th>
-              <th>Description</th>
               <th>Level</th>
+              <th>Description</th>
               <th>Employees</th>
               <th>Status</th>
               <th>Actions</th>
@@ -101,8 +147,8 @@
           <tbody>
             <tr *ngFor="let pos of positions">
               <td class="name-cell">{{ pos.title }}</td>
+              <td>{{ pos.level || '-' }}</td>
               <td class="desc-cell">{{ pos.description || '-' }}</td>
-              <td>{{ pos.level }}</td>
               <td>{{ pos.employee_count }}</td>
               <td>
                 <span class="status-badge" [class.status-active]="pos.is_active" [class.status-inactive]="!pos.is_active">
@@ -120,61 +166,204 @@
     </div>
   </div>
 
-  <!-- Modal -->
+  <!-- ===================== USERS TAB ===================== -->
+  <div *ngIf="!loading && activeTab === 'users'" class="content">
+    <div class="card">
+      <div class="card-body">
+        <div *ngIf="orgUsers.length === 0" class="empty-state"><p>No users found.</p></div>
+        <table *ngIf="orgUsers.length > 0" class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Employee ID</th>
+              <th>Role</th>
+              <th>Department</th>
+              <th>Position</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of orgUsers">
+              <td class="name-cell">{{ user.full_name }}</td>
+              <td>{{ user.employee_id }}</td>
+              <td><span class="role-badge role-{{ user.role.toLowerCase() }}">{{ user.role }}</span></td>
+              <td>{{ user.department_name || '— not assigned —' }}</td>
+              <td>{{ user.position_title || '— not assigned —' }}</td>
+              <td class="actions-cell">
+                <button class="btn-primary btn-sm" (click)="openAssign(user)">Assign</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SHIFTS TAB ===================== -->
+  <div *ngIf="!loading && activeTab === 'shifts'" class="content">
+    <div class="card">
+      <div class="card-body">
+        <div class="shift-user-select">
+          <label for="shiftUser"><strong>Select Employee</strong></label>
+          <select id="shiftUser" class="form-input shift-select" [(ngModel)]="shiftUserId" (ngModelChange)="onShiftUserChange()">
+            <option [ngValue]="null">— Choose an employee —</option>
+            <option *ngFor="let u of orgUsers" [ngValue]="u.id">{{ u.full_name }} ({{ u.employee_id }})</option>
+          </select>
+        </div>
+
+        <div *ngIf="!shiftUserId" class="empty-state"><p>Select an employee above to manage their shifts.</p></div>
+
+        <div *ngIf="shiftUserId">
+          <div *ngIf="loadingShifts" class="loading-container"><div class="spinner"></div></div>
+
+          <div *ngIf="!loadingShifts">
+            <h3 class="shift-title">Weekly Schedule — {{ shiftUserName }}</h3>
+            <table class="data-table shift-table">
+              <thead>
+                <tr>
+                  <th>Day</th>
+                  <th>Day Off</th>
+                  <th>Start Time</th>
+                  <th>End Time</th>
+                  <th>Lunch Break (min)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let day of shiftDays" [class.day-off-row]="day.is_day_off">
+                  <td class="name-cell">{{ day.name }}</td>
+                  <td>
+                    <input type="checkbox" [(ngModel)]="day.is_day_off" />
+                  </td>
+                  <td>
+                    <input *ngIf="!day.is_day_off" type="time" class="form-input shift-time" [(ngModel)]="day.start_time" />
+                    <span *ngIf="day.is_day_off" class="day-off-label">Day Off</span>
+                  </td>
+                  <td>
+                    <input *ngIf="!day.is_day_off" type="time" class="form-input shift-time" [(ngModel)]="day.end_time" />
+                    <span *ngIf="day.is_day_off" class="day-off-label">—</span>
+                  </td>
+                  <td>
+                    <input *ngIf="!day.is_day_off" type="number" class="form-input shift-lunch" [(ngModel)]="day.lunch_break_minutes" min="0" max="240" />
+                    <span *ngIf="day.is_day_off" class="day-off-label">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="shift-actions">
+              <button class="btn-primary" (click)="saveShifts()" [disabled]="savingShifts">
+                {{ savingShifts ? 'Saving...' : 'Save Shifts' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MODAL ===================== -->
   <div *ngIf="showModal" class="modal-overlay" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>{{ modalMode === 'create' ? 'Add' : 'Edit' }} {{ modalType === 'department' ? 'Department' : 'Position' }}</h2>
+        <h2>
+          {{ modalMode === 'create' ? 'Add' : 'Edit' }}
+          {{ modalType === 'organization' ? 'Organization' : modalType === 'department' ? 'Department' : modalType === 'position' ? 'Position' : 'Assign User' }}
+        </h2>
         <button class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+
+      <!-- Organization Form -->
+      <div *ngIf="modalType === 'organization'" class="modal-body">
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" class="form-input" [(ngModel)]="orgForm.name" placeholder="e.g., Acme Corp" />
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea class="form-textarea" [(ngModel)]="orgForm.description" rows="3" placeholder="Organization description"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Head of Organization</label>
+          <select class="form-input" [(ngModel)]="orgForm.head_of_organization">
+            <option [ngValue]="null">— Not assigned —</option>
+            <option *ngFor="let u of orgUsers" [ngValue]="u.id">{{ u.full_name }}</option>
+          </select>
+        </div>
+        <div *ngIf="isOrgManager" class="form-group">
+          <label>Organization Admin</label>
+          <select class="form-input" [(ngModel)]="orgFormAdminUserId">
+            <option [ngValue]="null">— Not assigned —</option>
+            <option *ngFor="let u of administrationUsers" [ngValue]="u.id">{{ u.full_name }}</option>
+          </select>
+          <small style="color:#666;font-size:12px">Only users with the Org Admin role are listed.</small>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" [(ngModel)]="orgForm.is_active" /> Active</label>
+        </div>
       </div>
 
       <!-- Department Form -->
       <div *ngIf="modalType === 'department'" class="modal-body">
         <div class="form-group">
-          <label for="dept_name">Name *</label>
-          <input type="text" id="dept_name" class="form-input" [(ngModel)]="deptForm.name" placeholder="e.g., Engineering" />
+          <label>Name *</label>
+          <input type="text" class="form-input" [(ngModel)]="deptForm.name" placeholder="e.g., Engineering" />
         </div>
         <div class="form-group">
-          <label for="dept_desc">Description</label>
-          <textarea id="dept_desc" class="form-textarea" [(ngModel)]="deptForm.description" placeholder="Department description" rows="3"></textarea>
+          <label>Organization</label>
+          <select class="form-input" [(ngModel)]="deptForm.organization">
+            <option [ngValue]="null">— Not assigned —</option>
+            <option *ngFor="let o of organizations" [ngValue]="o.id">{{ o.name }}</option>
+          </select>
         </div>
         <div class="form-group">
-          <label>
-            <input type="checkbox" [(ngModel)]="deptForm.is_active" />
-            Active
-          </label>
+          <label>Description</label>
+          <textarea class="form-textarea" [(ngModel)]="deptForm.description" rows="3" placeholder="Department description"></textarea>
+        </div>
+        <div class="form-group">
+          <label><input type="checkbox" [(ngModel)]="deptForm.is_active" /> Active</label>
         </div>
       </div>
 
       <!-- Position Form -->
       <div *ngIf="modalType === 'position'" class="modal-body">
         <div class="form-group">
-          <label for="pos_title">Title *</label>
-          <input type="text" id="pos_title" class="form-input" [(ngModel)]="posForm.title" placeholder="e.g., Software Engineer" />
+          <label>Title *</label>
+          <input type="text" class="form-input" [(ngModel)]="posForm.title" placeholder="e.g., Software Engineer" />
         </div>
         <div class="form-group">
-          <label for="pos_desc">Description</label>
-          <textarea id="pos_desc" class="form-textarea" [(ngModel)]="posForm.description" placeholder="Position description" rows="3"></textarea>
+          <label>Level</label>
+          <input type="text" class="form-input" [(ngModel)]="posForm.level" placeholder="e.g., Junior, Senior, Marketolog..." />
         </div>
         <div class="form-group">
-          <label for="pos_level">Level</label>
-          <input type="text" id="pos_level" class="form-input" [(ngModel)]="posForm.level" placeholder="e.g., Junior, Senior, Marketolog, Lead..." />
+          <label>Description</label>
+          <textarea class="form-textarea" [(ngModel)]="posForm.description" rows="3" placeholder="Position description"></textarea>
         </div>
         <div class="form-group">
-          <label>
-            <input type="checkbox" [(ngModel)]="posForm.is_active" />
-            Active
-          </label>
+          <label><input type="checkbox" [(ngModel)]="posForm.is_active" /> Active</label>
+        </div>
+      </div>
+
+      <!-- Assign User Form -->
+      <div *ngIf="modalType === 'assign'" class="modal-body">
+        <p class="assign-user-name">{{ assigningUser?.full_name }}</p>
+        <div class="form-group">
+          <label>Department</label>
+          <select class="form-input" [(ngModel)]="assignForm.department">
+            <option [ngValue]="null">— Not assigned —</option>
+            <option *ngFor="let d of departments" [ngValue]="d.id">{{ d.name }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Position</label>
+          <select class="form-input" [(ngModel)]="assignForm.position">
+            <option [ngValue]="null">— Not assigned —</option>
+            <option *ngFor="let p of positions" [ngValue]="p.id">{{ p.title }}</option>
+          </select>
         </div>
       </div>
 
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeModal()">Cancel</button>
-        <button
-          class="btn-primary"
-          (click)="save()"
-          [disabled]="saving || (modalType === 'department' ? !deptForm.name : !posForm.title)"
-        >
+        <button class="btn-primary" (click)="save()" [disabled]="saving">
           {{ saving ? 'Saving...' : (modalMode === 'create' ? 'Create' : 'Save') }}
         </button>
       </div>
