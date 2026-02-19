@@ -21,7 +21,7 @@ export interface JobPosition {
   id: number;
   title: string;
   description: string;
-  level: number;
+  level: string;
   is_active: boolean;
   employee_count: number;
   created_at: string;
@@ -31,7 +31,7 @@ export interface JobPosition {
 export interface JobPositionCreate {
   title: string;
   description?: string;
-  level?: number;
+  level?: string;
   is_active?: boolean;
 }
 

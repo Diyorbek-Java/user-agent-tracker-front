@@ -35,7 +35,7 @@ export class OrganizationComponent implements OnInit {
   editingDeptId: number | null = null;
 
   // Position form
-  posForm: JobPositionCreate = { title: '', description: '', level: 1, is_active: true };
+  posForm: JobPositionCreate = { title: '', description: '', level: '', is_active: true };
   editingPosId: number | null = null;
 
   get isAdminOrManager(): boolean {
@@ -155,7 +155,7 @@ export class OrganizationComponent implements OnInit {
     this.modalType = 'position';
     this.modalMode = 'create';
     this.editingPosId = null;
-    this.posForm = { title: '', description: '', level: 1, is_active: true };
+    this.posForm = { title: '', description: '', level: '', is_active: true };
     this.showModal = true;
   }
 
