@@ -5,7 +5,8 @@ import { PaginatedResponse } from '../models/dashboard.model';
 import {
   NetworkActivity,
   DomainSummaryResponse,
-  TopSitesResponse
+  TopSitesResponse,
+  DailyBrowserResponse
 } from '../models/network.model';
 
 @Injectable({
@@ -52,5 +53,12 @@ export class NetworkService {
       params = params.set('user_id', userId.toString());
     }
     return this.http.get<TopSitesResponse>(`${this.API_URL}/network/top-sites/`, { params });
+  }
+
+  getDailyBrowserStats(days: number = 7, browser?: string, userId?: number): Observable<DailyBrowserResponse> {
+    let params = new HttpParams().set('days', days.toString());
+    if (browser) params = params.set('browser', browser);
+    if (userId) params = params.set('user_id', userId.toString());
+    return this.http.get<DailyBrowserResponse>(`${this.API_URL}/network/daily-browsers/`, { params });
   }
 }

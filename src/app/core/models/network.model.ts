@@ -43,3 +43,18 @@ export interface TopSitesResponse {
   top_sites: TopSite[];
   browser_stats: BrowserStat[];
 }
+
+export interface DailyBrowserStat {
+  date: string;
+  browser: string;
+  total_duration: number;
+  total_duration_hours: number;
+  visit_count: number;
+}
+
+export interface DailyBrowserResponse {
+  days: number;
+  browser_filter: string;
+  available_browsers: string[];
+  results: DailyBrowserStat[];
+}

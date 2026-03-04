@@ -33,6 +33,7 @@
     <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="switchTab('overview')">Overview</button>
     <button class="tab-btn" [class.active]="activeTab === 'sites'" (click)="switchTab('sites')">Sites</button>
     <button class="tab-btn" [class.active]="activeTab === 'history'" (click)="switchTab('history')">History</button>
+    <button class="tab-btn" [class.active]="activeTab === 'daily'" (click)="switchTab('daily')">Daily</button>
   </div>
 
   <!-- Error -->
@@ -168,6 +169,53 @@
                 <td class="domain-cell">{{ domain.domain }}</td>
                 <td>{{ formatDuration(domain.total_duration) }}</td>
                 <td>{{ domain.visit_count }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAILY BROWSER TAB -->
+  <div *ngIf="activeTab === 'daily'" class="tab-content">
+    <!-- Browser Filter -->
+    <div class="filter-bar">
+      <select class="filter-input" [(ngModel)]="selectedBrowser" (change)="onDailyBrowserFilterChange()">
+        <option value="">All Browsers</option>
+        <option *ngFor="let b of availableBrowsers" [value]="b">{{ formatBrowserName(b) }}</option>
+      </select>
+    </div>
+
+    <div *ngIf="loadingDaily" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading daily stats...</p>
+    </div>
+
+    <div *ngIf="!loadingDaily">
+      <div *ngIf="dailyGrouped.length === 0" class="empty-state">
+        <p>No browsing data for the selected period.</p>
+      </div>
+
+      <div *ngFor="let group of dailyGrouped" class="card daily-group">
+        <div class="card-header daily-group-header">
+          <h2>{{ formatDate(group.date) }}</h2>
+          <span class="daily-total">{{ formatDuration(getDayTotal(group.rows)) }} total</span>
+        </div>
+        <div class="card-body">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Browser</th>
+                <th>Time Used</th>
+                <th>Visits</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of group.rows">
+                <td class="browser-cell">{{ formatBrowserName(row.browser) }}</td>
+                <td>{{ formatDuration(row.total_duration) }}</td>
+                <td>{{ row.visit_count }}</td>
               </tr>
             </tbody>
           </table>

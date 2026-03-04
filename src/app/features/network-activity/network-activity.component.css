@@ -553,3 +553,28 @@
     max-width: unset;
   }
 }
+
+/* Daily Browser Tab */
+.daily-group {
+  margin-bottom: 16px;
+}
+
+.daily-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.daily-total {
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+  background: #e0e7ff;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.browser-cell {
+  font-weight: 500;
+  color: #333;
+}

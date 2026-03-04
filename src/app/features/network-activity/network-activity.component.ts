@@ -10,7 +10,9 @@ import {
   DomainSummary,
   TopSite,
   BrowserStat,
-  TopSitesResponse
+  TopSitesResponse,
+  DailyBrowserStat,
+  DailyBrowserResponse
 } from '../../core/models/network.model';
 import { User } from '../../core/models/user.model';
 
@@ -23,7 +25,7 @@ import { User } from '../../core/models/user.model';
 })
 export class NetworkActivityComponent implements OnInit {
   currentUser: User | null = null;
-  activeTab: 'overview' | 'sites' | 'history' = 'overview';
+  activeTab: 'overview' | 'sites' | 'history' | 'daily' = 'overview';
 
   // Overview data
   topSitesData: TopSitesResponse | null = null;
@@ -41,6 +43,13 @@ export class NetworkActivityComponent implements OnInit {
   historyPage = 1;
   historyPageSize = 20;
   loadingHistory = true;
+
+  // Daily browser tab
+  dailyData: DailyBrowserStat[] = [];
+  dailyGrouped: { date: string; rows: DailyBrowserStat[] }[] = [];
+  availableBrowsers: string[] = [];
+  selectedBrowser = '';
+  loadingDaily = false;
 
   // Filters
   selectedDays = 7;
@@ -95,7 +104,7 @@ export class NetworkActivityComponent implements OnInit {
     this.loadAllData();
   }
 
-  switchTab(tab: 'overview' | 'sites' | 'history'): void {
+  switchTab(tab: 'overview' | 'sites' | 'history' | 'daily'): void {
     this.activeTab = tab;
     if (tab === 'sites' && this.domainSummaries.length === 0) {
       this.loadDomainSummary();
@@ -103,6 +112,9 @@ export class NetworkActivityComponent implements OnInit {
     if (tab === 'history' && this.networkActivities.length === 0) {
       this.historyPage = 1;
       this.loadHistory();
+    }
+    if (tab === 'daily' && this.dailyData.length === 0) {
+      this.loadDailyBrowserStats();
     }
   }
 
@@ -112,6 +124,9 @@ export class NetworkActivityComponent implements OnInit {
     if (this.activeTab === 'history') {
       this.historyPage = 1;
       this.loadHistory();
+    }
+    if (this.activeTab === 'daily') {
+      this.loadDailyBrowserStats();
     }
   }
 
@@ -244,6 +259,46 @@ export class NetworkActivityComponent implements OnInit {
     };
     const lower = processName.toLowerCase();
     return browsers[lower] || processName.replace(/\.exe$/i, '');
+  }
+
+  loadDailyBrowserStats(): void {
+    this.loadingDaily = true;
+    const userId = this.selectedUserId || undefined;
+    this.networkService.getDailyBrowserStats(this.selectedDays, this.selectedBrowser || undefined, userId).subscribe({
+      next: (data) => {
+        this.availableBrowsers = data.available_browsers;
+        this.dailyData = data.results;
+        this.groupDailyByDate();
+        this.loadingDaily = false;
+      },
+      error: (err) => {
+        console.error('Daily browser stats error:', err);
+        this.loadingDaily = false;
+      }
+    });
+  }
+
+  groupDailyByDate(): void {
+    const map = new Map<string, DailyBrowserStat[]>();
+    for (const row of this.dailyData) {
+      const key = row.date;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(row);
+    }
+    this.dailyGrouped = Array.from(map.entries()).map(([date, rows]) => ({ date, rows }));
+  }
+
+  onDailyBrowserFilterChange(): void {
+    this.loadDailyBrowserStats();
+  }
+
+  getDayTotal(rows: DailyBrowserStat[]): number {
+    return rows.reduce((sum, r) => sum + r.total_duration, 0);
+  }
+
+  formatDate(dateStr: string): string {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   navigateToDashboard(): void {
