@@ -1,0 +1,122 @@
+<div class="landing-wrapper">
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <path d="M8 21h8M12 17v4"/>
+        <circle cx="12" cy="10" r="3"/>
+      </svg>
+      <span>WorkTrack</span>
+    </div>
+    <button class="btn-login" (click)="goToLogin()">Admin Login</button>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-content">
+      <div class="badge">Employee Monitoring System</div>
+      <h1>Track. Analyze.<br><span class="accent">Optimize.</span></h1>
+      <p class="hero-sub">
+        Monitor employee activity, measure productivity, and gain actionable
+        insights — all from a single dashboard.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-download" (click)="downloadAgent()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download Desktop Agent
+        </button>
+        <button class="btn-secondary" (click)="goToLogin()">Open Dashboard</button>
+      </div>
+      <p class="platform-note">Windows 10 / 11 &nbsp;·&nbsp; 64-bit</p>
+    </div>
+    <div class="hero-visual">
+      <div class="mockup-card">
+        <div class="mockup-header">
+          <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+          <span class="mockup-title">Activity Monitor</span>
+        </div>
+        <div class="mockup-row">
+          <span class="mockup-label">Active Users</span>
+          <span class="mockup-val accent">24</span>
+        </div>
+        <div class="mockup-row">
+          <span class="mockup-label">Productivity</span>
+          <span class="mockup-val green">87%</span>
+        </div>
+        <div class="mockup-row">
+          <span class="mockup-label">Tracked Hours</span>
+          <span class="mockup-val">192h</span>
+        </div>
+        <div class="mockup-bar-wrap">
+          <div class="mockup-bar" style="width:87%"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <h3>Real-time Tracking</h3>
+      <p>Monitor active windows and applications as they happen, with 15-minute upload cycles.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 20V10M12 20V4M6 20v-6"/>
+        </svg>
+      </div>
+      <h3>Productivity Analytics</h3>
+      <p>Shift-aware scoring with department rules, app categories, and daily trends.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </div>
+      <h3>Website Monitoring</h3>
+      <p>Track domains and URLs visited per employee with browser distribution breakdown.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <h3>Offline Support</h3>
+      <p>Agent works offline with local SQLite storage and syncs when connection is restored.</p>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Ready to install?</h2>
+    <p>Deploy the agent on employee machines in minutes.</p>
+    <button class="btn-download large" (click)="downloadAgent()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download UserBehaviorTracker-Setup.exe
+    </button>
+  </section>
+
+  <footer class="footer">
+    <p>&copy; 2026 WorkTrack &mdash; Employee Monitoring System</p>
+  </footer>
+</div>
