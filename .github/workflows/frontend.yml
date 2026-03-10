@@ -75,8 +75,8 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
           script: |
-            cd /opt/employee-monitoring
-            docker compose pull frontend
-            docker compose up -d --no-deps frontend
-            docker compose up -d --no-deps nginx
+            cd /home/azureuser/user-agent-tracker-backend
+            docker-compose pull frontend
+            docker-compose up -d --no-deps frontend
+            docker-compose up -d --no-deps nginx
             docker image prune -f
