@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -11,13 +12,20 @@ import { environment } from '../../../environments/environment';
 export class LandingComponent {
   downloadUrl = `${environment.apiUrl}/frontend/download/agent/`;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private http: HttpClient) {}
 
   goToLogin(): void {
     this.router.navigate(['/auth/login']);
   }
 
   downloadAgent(): void {
-    window.open(this.downloadUrl, '_blank');
+    this.http.get(this.downloadUrl, { responseType: 'blob' }).subscribe(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'UserBehaviorTracker-Setup.exe';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
   }
 }

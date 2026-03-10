@@ -6,7 +6,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const token = authService.getToken();
 
-  if (token) {
+  if (token && !req.url.includes('/download/agent/')) {
     req = req.clone({
       setHeaders: {
         Authorization: `Token ${token}`
