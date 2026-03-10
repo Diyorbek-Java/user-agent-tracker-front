@@ -22,6 +22,6 @@ jobs:
             cd /home/azureuser/user-agent-tracker-front
             git pull origin main
             cd /home/azureuser/user-agent-tracker-backend
-            docker-compose up -d --build --no-deps frontend
-            docker-compose up -d --no-deps nginx
+            docker-compose down
+            docker-compose up -d --build
             docker image prune -f
