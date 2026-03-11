@@ -71,7 +71,7 @@ export class UserManagementComponent implements OnInit {
 
   loadUsers(): void {
     this.usersLoading = true;
-    this.http.get<any[]>('/api/front/users/list/').subscribe({
+    this.http.get<any[]>('/api/frontend/users/list/').subscribe({
       next: (users) => {
         this.users = users;
         this.usersLoading = false;
@@ -83,7 +83,7 @@ export class UserManagementComponent implements OnInit {
   deleteUser(user: any): void {
     if (!confirm(`Delete ${user.full_name}? This cannot be undone.`)) return;
     this.deleteError = '';
-    this.http.delete<any>(`/api/front/admin/users/${user.id}/`).subscribe({
+    this.http.delete<any>(`/api/frontend/admin/users/${user.id}/`).subscribe({
       next: () => {
         this.users = this.users.filter(u => u.id !== user.id);
       },
