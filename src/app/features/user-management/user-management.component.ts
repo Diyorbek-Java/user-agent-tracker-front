@@ -48,6 +48,12 @@ export class UserManagementComponent implements OnInit {
   successMessage = '';
   createdUserOTP = '';
 
+  // User list
+  users: any[] = [];
+  usersLoading = false;
+  deleteError = '';
+  showForm = false;
+
   // Available roles based on current user
   availableRoles: { value: string; label: string }[] = [];
 
@@ -60,6 +66,31 @@ export class UserManagementComponent implements OnInit {
   ngOnInit(): void {
     this.currentUser = this.authService.currentUserValue;
     this.setAvailableRoles();
+    this.loadUsers();
+  }
+
+  loadUsers(): void {
+    this.usersLoading = true;
+    this.http.get<any[]>('/api/front/users/list/').subscribe({
+      next: (users) => {
+        this.users = users;
+        this.usersLoading = false;
+      },
+      error: () => { this.usersLoading = false; }
+    });
+  }
+
+  deleteUser(user: any): void {
+    if (!confirm(`Delete ${user.full_name}? This cannot be undone.`)) return;
+    this.deleteError = '';
+    this.http.delete<any>(`/api/front/admin/users/${user.id}/`).subscribe({
+      next: () => {
+        this.users = this.users.filter(u => u.id !== user.id);
+      },
+      error: (err) => {
+        this.deleteError = err.error?.error || 'Failed to delete user';
+      }
+    });
   }
 
   setAvailableRoles(): void {
@@ -117,8 +148,9 @@ export class UserManagementComponent implements OnInit {
           if (response.user?.otp) {
             this.createdUserOTP = response.user.otp;
           }
-          // Reset form
+          this.showForm = false;
           this.resetForm();
+          this.loadUsers();
         } else {
           this.error = response.error || 'Failed to create user';
         }
@@ -131,14 +163,25 @@ export class UserManagementComponent implements OnInit {
     });
   }
 
+  toggleForm(): void {
+    this.showForm = !this.showForm;
+    if (!this.showForm) this.resetForm();
+  }
+
+  cancelForm(): void {
+    this.showForm = false;
+    this.resetForm();
+  }
+
   resetForm(): void {
+    this.error = '';
     this.newUser = {
       email: '',
       full_name: '',
       employee_id: '',
       department: '',
       position: '',
-      role: this.currentUser?.role === 'ADMIN' ? 'EMPLOYEE' : 'EMPLOYEE'
+      role: 'EMPLOYEE'
     };
   }
 

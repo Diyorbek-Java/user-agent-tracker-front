@@ -3,7 +3,7 @@
   <header class="page-header">
     <div class="header-left">
       <button class="btn-back" (click)="goBack()">← Back to Dashboard</button>
-      <h1>Create New User</h1>
+      <h1>User Management</h1>
     </div>
     <div class="header-right">
       <button class="btn-logout" (click)="logout()">Logout</button>
@@ -18,9 +18,7 @@
       <button class="btn-primary" (click)="goBack()">Go Back</button>
     </div>
 
-    <!-- Create User Form -->
     <div *ngIf="isAdminOrManager" class="form-card">
-      <h2>User Information</h2>
 
       <!-- Success Message -->
       <div *ngIf="successMessage" class="alert alert-success">
@@ -33,117 +31,98 @@
       </div>
 
       <!-- Error Message -->
-      <div *ngIf="error" class="alert alert-error">
-        {{ error }}
+      <div *ngIf="error" class="alert alert-error">{{ error }}</div>
+
+      <!-- Create Form (collapsible) -->
+      <div *ngIf="showForm" class="create-form-section">
+        <h2>New User Information</h2>
+        <form (ngSubmit)="createUser()" class="create-user-form">
+          <div class="form-group">
+            <label for="email">Email Address <span class="required">*</span></label>
+            <input type="email" id="email" name="email" [(ngModel)]="newUser.email" class="form-control" placeholder="user@example.com" required />
+          </div>
+
+          <div class="form-group">
+            <label for="fullName">Full Name <span class="required">*</span></label>
+            <input type="text" id="fullName" name="fullName" [(ngModel)]="newUser.full_name" class="form-control" placeholder="John Doe" required />
+          </div>
+
+          <div class="form-group">
+            <label for="employeeId">Employee ID <span class="required">*</span></label>
+            <input type="text" id="employeeId" name="employeeId" [(ngModel)]="newUser.employee_id" class="form-control" placeholder="EMP001" required />
+          </div>
+
+          <div class="form-group">
+            <label for="role">Role <span class="required">*</span></label>
+            <select id="role" name="role" [(ngModel)]="newUser.role" class="form-control" required>
+              <option *ngFor="let role of availableRoles" [value]="role.value">{{ role.label }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="department">Department</label>
+            <input type="text" id="department" name="department" [(ngModel)]="newUser.department" class="form-control" placeholder="Sales, Engineering, HR, etc." />
+          </div>
+
+          <div class="form-group">
+            <label for="position">Position</label>
+            <input type="text" id="position" name="position" [(ngModel)]="newUser.position" class="form-control" placeholder="Senior Developer, Team Lead, etc." />
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" [disabled]="loading">
+              <span *ngIf="!loading">Create User</span>
+              <span *ngIf="loading">Creating...</span>
+            </button>
+            <button type="button" class="btn-secondary" (click)="cancelForm()" [disabled]="loading">Cancel</button>
+          </div>
+        </form>
       </div>
 
-      <form (ngSubmit)="createUser()" class="create-user-form">
-        <!-- Email -->
-        <div class="form-group">
-          <label for="email">Email Address <span class="required">*</span></label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            [(ngModel)]="newUser.email"
-            class="form-control"
-            placeholder="user@example.com"
-            required
-          />
+      <!-- User List -->
+      <div class="user-list-section">
+        <div class="list-header">
+          <h2>Users</h2>
+          <button class="btn-create-new" (click)="toggleForm()">+ Create New User</button>
         </div>
 
-        <!-- Full Name -->
-        <div class="form-group">
-          <label for="fullName">Full Name <span class="required">*</span></label>
-          <input
-            type="text"
-            id="fullName"
-            name="fullName"
-            [(ngModel)]="newUser.full_name"
-            class="form-control"
-            placeholder="John Doe"
-            required
-          />
-        </div>
+        <div *ngIf="deleteError" class="alert alert-error">{{ deleteError }}</div>
 
-        <!-- Employee ID -->
-        <div class="form-group">
-          <label for="employeeId">Employee ID <span class="required">*</span></label>
-          <input
-            type="text"
-            id="employeeId"
-            name="employeeId"
-            [(ngModel)]="newUser.employee_id"
-            class="form-control"
-            placeholder="EMP001"
-            required
-          />
-        </div>
+        <div *ngIf="usersLoading" class="loading-text">Loading users...</div>
 
-        <!-- Role -->
-        <div class="form-group">
-          <label for="role">Role <span class="required">*</span></label>
-          <select
-            id="role"
-            name="role"
-            [(ngModel)]="newUser.role"
-            class="form-control"
-            required
-          >
-            <option *ngFor="let role of availableRoles" [value]="role.value">
-              {{ role.label }}
-            </option>
-          </select>
-          <small class="form-hint">
-            <span *ngIf="currentUser?.role === 'ADMIN'">
-              As an Admin, you can create Manager, Employee, Organization Manager, or Organization Admin accounts.
-            </span>
-            <span *ngIf="currentUser?.role === 'ORG_MANAGER'">
-              As an Organization Manager, you can create Organization Admin or Employee accounts.
-            </span>
-            <span *ngIf="currentUser?.role === 'MANAGER'">
-              As a Manager, you can only create Employee accounts.
-            </span>
-          </small>
-        </div>
+        <p *ngIf="currentUser?.role === 'MANAGER'" class="filter-note">
+          Showing users in your department only.
+        </p>
 
-        <!-- Department -->
-        <div class="form-group">
-          <label for="department">Department</label>
-          <input
-            type="text"
-            id="department"
-            name="department"
-            [(ngModel)]="newUser.department"
-            class="form-control"
-            placeholder="Sales, Engineering, HR, etc."
-          />
-        </div>
+        <table *ngIf="!usersLoading && users.length > 0" class="user-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Employee ID</th>
+              <th>Department</th>
+              <th>Position</th>
+              <th>Role</th>
+              <th *ngIf="currentUser?.role === 'ADMIN'">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of users">
+              <td>{{ user.full_name }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.employee_id || '-' }}</td>
+              <td>{{ user.department_name || '-' }}</td>
+              <td>{{ user.position_name || '-' }}</td>
+              <td>{{ user.role }}</td>
+              <td *ngIf="currentUser?.role === 'ADMIN'">
+                <button class="btn-delete" (click)="deleteUser(user)" [disabled]="user.id === currentUser?.id">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-        <!-- Position -->
-        <div class="form-group">
-          <label for="position">Position</label>
-          <input
-            type="text"
-            id="position"
-            name="position"
-            [(ngModel)]="newUser.position"
-            class="form-control"
-            placeholder="Senior Developer, Team Lead, etc."
-          />
-        </div>
-
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <button type="submit" class="btn-primary" [disabled]="loading">
-            <span *ngIf="!loading">Create User</span>
-            <span *ngIf="loading">Creating...</span>
-          </button>
-          <button type="button" class="btn-secondary" (click)="resetForm()" [disabled]="loading">
-            Clear Form
-          </button>
-        </div>
-      </form>
+        <p *ngIf="!usersLoading && users.length === 0" class="no-users">No users found.</p>
+      </div>
     </div>
   </div>
 </div>

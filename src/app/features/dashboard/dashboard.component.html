@@ -24,6 +24,7 @@
     <div class="header-right">
       <button *ngIf="isAdminOrManager" class="btn-productivity" (click)="navigateToProductivity()">📊 Productivity</button>
       <button *ngIf="isAdminOrManager" class="btn-secondary" (click)="navigateToOrganization()">🏢 Organization</button>
+      <button *ngIf="isAdminOrManager" class="btn-secondary" (click)="navigateToUserManagement()">👥 Users</button>
       <button *ngIf="isAdminOrManager" class="btn-secondary" (click)="navigateToShiftManagement()">🕐 Shifts</button>
       <button class="btn-secondary" (click)="navigateToNetworkActivity()">🌐 Network</button>
       <button class="btn-secondary" (click)="navigateToManualTime()">⏱️ Manual Time</button>
