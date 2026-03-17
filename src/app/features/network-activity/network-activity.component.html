@@ -183,7 +183,7 @@
     <div class="filter-bar">
       <select class="filter-input" [(ngModel)]="selectedBrowser" (change)="onDailyBrowserFilterChange()">
         <option value="">All Browsers</option>
-        <option *ngFor="let b of availableBrowsers" [value]="b">{{ formatBrowserName(b) }}</option>
+        <option *ngFor="let b of uniqueBrowserOptions" [value]="b.raw">{{ b.label }}</option>
       </select>
     </div>
 

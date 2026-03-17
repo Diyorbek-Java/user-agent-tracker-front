@@ -261,6 +261,20 @@ export class NetworkActivityComponent implements OnInit {
     return browsers[lower] || processName.replace(/\.exe$/i, '');
   }
 
+  /** Deduplicate availableBrowsers by their formatted display name. */
+  get uniqueBrowserOptions(): { raw: string; label: string }[] {
+    const seen = new Set<string>();
+    const result: { raw: string; label: string }[] = [];
+    for (const b of this.availableBrowsers) {
+      const label = this.formatBrowserName(b);
+      if (!seen.has(label)) {
+        seen.add(label);
+        result.push({ raw: b, label });
+      }
+    }
+    return result;
+  }
+
   loadDailyBrowserStats(): void {
     this.loadingDaily = true;
     const userId = this.selectedUserId || undefined;
