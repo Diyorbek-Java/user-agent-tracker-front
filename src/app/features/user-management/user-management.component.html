@@ -10,7 +10,6 @@
     </div>
   </header>
 
-  <!-- Main Content -->
   <div class="page-content">
     <!-- Permission Check -->
     <div *ngIf="!isAdminOrManager" class="alert alert-error">
@@ -18,61 +17,93 @@
       <button class="btn-primary" (click)="goBack()">Go Back</button>
     </div>
 
-    <div *ngIf="isAdminOrManager" class="form-card">
+    <div *ngIf="isAdminOrManager">
 
       <!-- Success Message -->
       <div *ngIf="successMessage" class="alert alert-success">
-        <p>{{ successMessage }}</p>
-        <p *ngIf="createdUserOTP" class="otp-display">
-          <strong>One-Time Password:</strong> <code>{{ createdUserOTP }}</code>
-          <br>
-          <small>Please share this OTP with the new user for their first login.</small>
-        </p>
+        <div class="alert-icon">✓</div>
+        <div class="alert-body">
+          <p>{{ successMessage }}</p>
+          <div *ngIf="createdUserOTP" class="otp-display">
+            <span class="otp-label">One-Time Password:</span>
+            <code>{{ createdUserOTP }}</code>
+            <small>Share this OTP with the new user for their first login.</small>
+          </div>
+        </div>
       </div>
 
-      <!-- Error Message -->
-      <div *ngIf="error" class="alert alert-error">{{ error }}</div>
+      <!-- Create User Form (slide-in panel) -->
+      <div *ngIf="showForm" class="form-panel">
+        <div class="form-panel-header">
+          <div class="form-panel-title">
+            <div class="form-icon">👤</div>
+            <div>
+              <h2>New User</h2>
+              <p>Employee ID will be auto-generated</p>
+            </div>
+          </div>
+          <button class="btn-icon-close" (click)="cancelForm()">✕</button>
+        </div>
 
-      <!-- Create Form (collapsible) -->
-      <div *ngIf="showForm" class="create-form-section">
-        <h2>New User Information</h2>
+        <div *ngIf="error" class="alert alert-error inline-error">{{ error }}</div>
+
         <form (ngSubmit)="createUser()" class="create-user-form">
-          <div class="form-group">
-            <label for="email">Email Address <span class="required">*</span></label>
-            <input type="email" id="email" name="email" [(ngModel)]="newUser.email" class="form-control" placeholder="user@example.com" required />
-          </div>
+          <div class="form-grid">
+            <!-- Email -->
+            <div class="form-group full-width">
+              <label for="email">Email Address <span class="required">*</span></label>
+              <div class="input-wrapper">
+                <span class="input-icon">✉</span>
+                <input type="email" id="email" name="email"
+                  [(ngModel)]="newUser.email"
+                  class="form-control with-icon"
+                  placeholder="user@example.com" required />
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label for="fullName">Full Name <span class="required">*</span></label>
-            <input type="text" id="fullName" name="fullName" [(ngModel)]="newUser.full_name" class="form-control" placeholder="John Doe" required />
-          </div>
+            <!-- Full Name -->
+            <div class="form-group full-width">
+              <label for="fullName">Full Name <span class="required">*</span></label>
+              <div class="input-wrapper">
+                <span class="input-icon">👤</span>
+                <input type="text" id="fullName" name="fullName"
+                  [(ngModel)]="newUser.full_name"
+                  class="form-control with-icon"
+                  placeholder="John Doe" required />
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label for="employeeId">Employee ID <span class="required">*</span></label>
-            <input type="text" id="employeeId" name="employeeId" [(ngModel)]="newUser.employee_id" class="form-control" placeholder="EMP001" required />
-          </div>
+            <!-- Role -->
+            <div class="form-group">
+              <label for="role">Role <span class="required">*</span></label>
+              <select id="role" name="role" [(ngModel)]="newUser.role" class="form-control" required>
+                <option *ngFor="let role of availableRoles" [value]="role.value">{{ role.label }}</option>
+              </select>
+            </div>
 
-          <div class="form-group">
-            <label for="role">Role <span class="required">*</span></label>
-            <select id="role" name="role" [(ngModel)]="newUser.role" class="form-control" required>
-              <option *ngFor="let role of availableRoles" [value]="role.value">{{ role.label }}</option>
-            </select>
-          </div>
+            <!-- Department -->
+            <div class="form-group">
+              <label for="department">Department</label>
+              <select id="department" name="department" [(ngModel)]="newUser.department" class="form-control">
+                <option [ngValue]="null">— Select Department —</option>
+                <option *ngFor="let dept of departments" [ngValue]="dept.id">{{ dept.name }}</option>
+              </select>
+            </div>
 
-          <div class="form-group">
-            <label for="department">Department</label>
-            <input type="text" id="department" name="department" [(ngModel)]="newUser.department" class="form-control" placeholder="Sales, Engineering, HR, etc." />
-          </div>
-
-          <div class="form-group">
-            <label for="position">Position</label>
-            <input type="text" id="position" name="position" [(ngModel)]="newUser.position" class="form-control" placeholder="Senior Developer, Team Lead, etc." />
+            <!-- Position -->
+            <div class="form-group">
+              <label for="position">Position</label>
+              <select id="position" name="position" [(ngModel)]="newUser.position" class="form-control">
+                <option [ngValue]="null">— Select Position —</option>
+                <option *ngFor="let pos of positions" [ngValue]="pos.id">{{ pos.title }}</option>
+              </select>
+            </div>
           </div>
 
           <div class="form-actions">
             <button type="submit" class="btn-primary" [disabled]="loading">
               <span *ngIf="!loading">Create User</span>
-              <span *ngIf="loading">Creating...</span>
+              <span *ngIf="loading" class="spinner">Creating...</span>
             </button>
             <button type="button" class="btn-secondary" (click)="cancelForm()" [disabled]="loading">Cancel</button>
           </div>
@@ -80,19 +111,33 @@
       </div>
 
       <!-- User List -->
-      <div class="user-list-section">
+      <div class="list-card">
         <div class="list-header">
-          <h2>Users</h2>
-          <button class="btn-create-new" (click)="toggleForm()">+ Create New User</button>
+          <div>
+            <h2>Users</h2>
+            <p class="list-subtitle">{{ users.length }} member{{ users.length !== 1 ? 's' : '' }} total</p>
+          </div>
+          <button class="btn-create-new" (click)="toggleForm()">
+            <span *ngIf="!showForm">+ Add User</span>
+            <span *ngIf="showForm">✕ Close</span>
+          </button>
         </div>
 
         <div *ngIf="deleteError" class="alert alert-error">{{ deleteError }}</div>
 
-        <div *ngIf="usersLoading" class="loading-text">Loading users...</div>
-
         <p *ngIf="currentUser?.role === 'MANAGER'" class="filter-note">
           Showing users in your department only.
         </p>
+
+        <div *ngIf="usersLoading" class="loading-state">
+          <div class="loading-spinner"></div>
+          <span>Loading users...</span>
+        </div>
+
+        <div *ngIf="!usersLoading && users.length === 0" class="empty-state">
+          <div class="empty-icon">👥</div>
+          <p>No users found.</p>
+        </div>
 
         <table *ngIf="!usersLoading && users.length > 0" class="user-table">
           <thead>
@@ -108,21 +153,29 @@
           </thead>
           <tbody>
             <tr *ngFor="let user of users">
-              <td>{{ user.full_name }}</td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.employee_id || '-' }}</td>
-              <td>{{ user.department_name || '-' }}</td>
-              <td>{{ user.position_name || '-' }}</td>
-              <td>{{ user.role }}</td>
+              <td>
+                <div class="user-name-cell">
+                  <div class="avatar">{{ getInitials(user.full_name) }}</div>
+                  <span>{{ user.full_name }}</span>
+                </div>
+              </td>
+              <td class="email-cell">{{ user.email }}</td>
+              <td><span class="emp-id-badge">{{ user.employee_id || '—' }}</span></td>
+              <td>{{ user.department_name || '—' }}</td>
+              <td>{{ user.position_name || '—' }}</td>
+              <td><span [class]="getRoleBadgeClass(user.role)">{{ user.role }}</span></td>
               <td *ngIf="currentUser?.role === 'ADMIN'">
-                <button class="btn-delete" (click)="deleteUser(user)" [disabled]="user.id === currentUser?.id">Delete</button>
+                <button class="btn-delete"
+                  (click)="deleteUser(user)"
+                  [disabled]="user.id === currentUser?.id">
+                  Delete
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
-
-        <p *ngIf="!usersLoading && users.length === 0" class="no-users">No users found.</p>
       </div>
+
     </div>
   </div>
 </div>

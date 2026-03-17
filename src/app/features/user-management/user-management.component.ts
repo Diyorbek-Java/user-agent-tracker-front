@@ -9,9 +9,8 @@ import { HttpClient } from '@angular/common/http';
 interface CreateUserRequest {
   email: string;
   full_name: string;
-  employee_id: string;
-  department?: string;
-  position?: string;
+  department?: number | null;
+  position?: number | null;
   role: 'MANAGER' | 'EMPLOYEE' | 'ORG_MANAGER' | 'ORG_ADMIN';
 }
 
@@ -36,9 +35,8 @@ export class UserManagementComponent implements OnInit {
   newUser: CreateUserRequest = {
     email: '',
     full_name: '',
-    employee_id: '',
-    department: '',
-    position: '',
+    department: null,
+    position: null,
     role: 'EMPLOYEE'
   };
 
@@ -54,6 +52,10 @@ export class UserManagementComponent implements OnInit {
   deleteError = '';
   showForm = false;
 
+  // Dropdowns
+  departments: any[] = [];
+  positions: any[] = [];
+
   // Available roles based on current user
   availableRoles: { value: string; label: string }[] = [];
 
@@ -67,6 +69,8 @@ export class UserManagementComponent implements OnInit {
     this.currentUser = this.authService.currentUserValue;
     this.setAvailableRoles();
     this.loadUsers();
+    this.loadDepartments();
+    this.loadPositions();
   }
 
   loadUsers(): void {
@@ -77,6 +81,20 @@ export class UserManagementComponent implements OnInit {
         this.usersLoading = false;
       },
       error: () => { this.usersLoading = false; }
+    });
+  }
+
+  loadDepartments(): void {
+    this.http.get<any>('/api/frontend/departments/').subscribe({
+      next: (res) => { this.departments = res.departments || []; },
+      error: () => {}
+    });
+  }
+
+  loadPositions(): void {
+    this.http.get<any>('/api/frontend/positions/').subscribe({
+      next: (res) => { this.positions = res.positions || []; },
+      error: () => {}
     });
   }
 
@@ -120,18 +138,15 @@ export class UserManagementComponent implements OnInit {
   }
 
   createUser(): void {
-    // Reset messages
     this.error = '';
     this.successMessage = '';
     this.createdUserOTP = '';
 
-    // Validation
-    if (!this.newUser.email || !this.newUser.full_name || !this.newUser.employee_id) {
-      this.error = 'Email, Full Name, and Employee ID are required';
+    if (!this.newUser.email || !this.newUser.full_name) {
+      this.error = 'Email and Full Name are required';
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(this.newUser.email)) {
       this.error = 'Please enter a valid email address';
@@ -158,7 +173,6 @@ export class UserManagementComponent implements OnInit {
       error: (err) => {
         this.loading = false;
         this.error = err.error?.error || 'Failed to create user';
-        console.error('Create user error:', err);
       }
     });
   }
@@ -178,11 +192,24 @@ export class UserManagementComponent implements OnInit {
     this.newUser = {
       email: '',
       full_name: '',
-      employee_id: '',
-      department: '',
-      position: '',
+      department: null,
+      position: null,
       role: 'EMPLOYEE'
     };
+  }
+
+  getRoleBadgeClass(role: string): string {
+    switch (role) {
+      case 'ADMIN': return 'badge badge-admin';
+      case 'MANAGER': return 'badge badge-manager';
+      case 'ORG_MANAGER': return 'badge badge-org-manager';
+      case 'ORG_ADMIN': return 'badge badge-org-admin';
+      default: return 'badge badge-employee';
+    }
+  }
+
+  getInitials(name: string): string {
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   }
 
   goBack(): void {
