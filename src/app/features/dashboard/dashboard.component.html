@@ -16,7 +16,7 @@
         >
           <option [value]="currentUser?.id">{{ currentUser?.full_name }} (Me)</option>
           <option *ngFor="let user of availableUsers" [value]="user.id">
-            {{ user.full_name }} - {{ user.role }} ({{ user.department || 'N/A' }})
+            {{ user.full_name }} - {{ user.role }} ({{ user.position?.name || 'N/A' }})
           </option>
         </select>
       </div>

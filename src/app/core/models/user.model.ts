@@ -6,8 +6,9 @@ export interface User {
   employee_id: string;
   role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'ORG_MANAGER' | 'ORG_ADMIN';
   managed_organization?: number | null;
-  department?: string;
-  position?: string;
+  department?: number | null;
+  department_name?: string | null;
+  position?: { id: number; name: string } | null;
   computer_name?: string;
   is_admin?: boolean;
   last_login?: string;
