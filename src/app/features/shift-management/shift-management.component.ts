@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ShiftService } from '../../core/services/shift.service';
 import { AuthService } from '../../core/services/auth.service';
+import { HasRoleDirective } from '../../core/directives/has-role.directive';
 import {
   UserShiftSummary,
   UserShiftsResponse,
@@ -25,7 +26,7 @@ interface ShiftFormRow {
 @Component({
   selector: 'app-shift-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HasRoleDirective],
   templateUrl: './shift-management.component.html',
   styleUrls: ['./shift-management.component.css']
 })

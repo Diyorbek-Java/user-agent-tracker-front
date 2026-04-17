@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { User } from '../../core/models/user.model';
 import { HttpClient } from '@angular/common/http';
+import { HasRoleDirective } from '../../core/directives/has-role.directive';
 
 interface CreateUserRequest {
   email: string;
@@ -24,7 +25,7 @@ interface CreateUserResponse {
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HasRoleDirective],
   templateUrl: './user-management.component.html',
   styleUrls: ['./user-management.component.css']
 })

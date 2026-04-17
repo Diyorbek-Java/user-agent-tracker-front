@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HasRoleDirective } from '../../core/directives/has-role.directive';
 import { Router } from '@angular/router';
 import { OrganizationService } from '../../core/services/organization.service';
 import { ProductivityService } from '../../core/services/productivity.service';
@@ -17,7 +18,7 @@ import { User } from '../../core/models/user.model';
 @Component({
   selector: 'app-position-weights',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HasRoleDirective],
   templateUrl: './position-weights.component.html',
   styleUrls: ['./position-weights.component.css']
 })
@@ -72,11 +73,6 @@ export class PositionWeightsComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser = this.authService.currentUserValue;
-
-    if (!this.isAdminOrManager) {
-      this.router.navigate(['/dashboard']);
-      return;
-    }
 
     this.loadData();
   }

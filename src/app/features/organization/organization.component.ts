@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HasRoleDirective } from '../../core/directives/has-role.directive';
 import { Router } from '@angular/router';
 import { OrganizationService } from '../../core/services/organization.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -28,7 +29,7 @@ const DEFAULT_SHIFT_DAYS: ShiftDay[] = [
 @Component({
   selector: 'app-organization',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HasRoleDirective],
   templateUrl: './organization.component.html',
   styleUrls: ['./organization.component.css']
 })
@@ -96,10 +97,6 @@ export class OrganizationComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser = this.authService.currentUserValue;
-    if (!this.isAdminOrManager) {
-      this.router.navigate(['/dashboard']);
-      return;
-    }
     this.loadAll();
   }
 

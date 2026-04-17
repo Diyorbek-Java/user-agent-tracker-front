@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NetworkService } from '../../core/services/network.service';
 import { AuthService } from '../../core/services/auth.service';
+import { HasRoleDirective } from '../../core/directives/has-role.directive';
 import { DashboardService } from '../../core/services/dashboard.service';
 import {
   NetworkActivity,
@@ -19,7 +20,7 @@ import { User } from '../../core/models/user.model';
 @Component({
   selector: 'app-network-activity',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HasRoleDirective],
   templateUrl: './network-activity.component.html',
   styleUrls: ['./network-activity.component.css']
 })

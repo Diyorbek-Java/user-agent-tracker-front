@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HasRoleDirective } from '../../core/directives/has-role.directive';
 import { Router } from '@angular/router';
 import { DashboardService } from '../../core/services/dashboard.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -19,7 +20,7 @@ interface GroupedActivities {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HasRoleDirective],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
@@ -71,12 +72,6 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser = this.authService.currentUserValue;
-
-    // ORG_MANAGER only manages organization — redirect them away from the monitoring dashboard
-    if (this.currentUser?.role === 'ORG_MANAGER' || this.currentUser?.role === 'ORG_ADMIN') {
-      this.router.navigate(['/organization']);
-      return;
-    }
 
     // Load user list if admin/manager
     if (this.isAdminOrManager) {

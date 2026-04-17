@@ -4,13 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ProductivityService } from '../../core/services/productivity.service';
 import { AuthService } from '../../core/services/auth.service';
+import { HasRoleDirective } from '../../core/directives/has-role.directive';
 import { ManualTimeEntry, ManualTimeEntryCreate } from '../../core/models/productivity.model';
 import { User } from '../../core/models/user.model';
 
 @Component({
   selector: 'app-manual-time',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HasRoleDirective],
   templateUrl: './manual-time.component.html',
   styleUrls: ['./manual-time.component.css']
 })

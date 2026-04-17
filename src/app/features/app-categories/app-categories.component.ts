@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HasRoleDirective } from '../../core/directives/has-role.directive';
 import { Router } from '@angular/router';
 import { ProductivityService } from '../../core/services/productivity.service';
 import { OrganizationService } from '../../core/services/organization.service';
@@ -17,7 +18,7 @@ import { User } from '../../core/models/user.model';
 @Component({
   selector: 'app-app-categories',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, HasRoleDirective],
   templateUrl: './app-categories.component.html',
   styleUrls: ['./app-categories.component.css']
 })
@@ -79,11 +80,6 @@ export class AppCategoriesComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser = this.authService.currentUserValue;
-
-    if (!this.isAdminOrManager) {
-      this.router.navigate(['/dashboard']);
-      return;
-    }
 
     this.loadPositions();
     this.loadCategories();
