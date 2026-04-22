@@ -159,12 +159,6 @@ export class AppCategoriesComponent implements OnInit {
   getWeightForApp(appCategoryId: number): number {
     const pw = this.positionWeights.find(w => w.app_category === appCategoryId);
     if (pw) return pw.weight;
-    // Fall back to category-based default
-    const cat = this.categories.find(c => c.id === appCategoryId);
-    if (cat) {
-      if (cat.category === 'PRODUCTIVE') return 1.0;
-      if (cat.category === 'NON_PRODUCTIVE') return 0.0;
-    }
     return this.settings?.default_weight ?? 0.5;
   }
 
