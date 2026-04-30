@@ -11,6 +11,18 @@ export const routes: Routes = [
     path: 'auth/login',
     loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
   },
+  {
+    path: 'auth/signup',
+    loadComponent: () => import('./features/auth/signup/signup.component').then(m => m.SignupComponent)
+  },
+  {
+    path: 'auth/set-password',
+    loadComponent: () => import('./features/auth/set-password/set-password.component').then(m => m.SetPasswordComponent)
+  },
+  {
+    path: 'auth/forgot-password',
+    loadComponent: () => import('./features/auth/forgot-password/forgot-password.component').then(m => m.ForgotPasswordComponent)
+  },
 
   // --- Monitoring routes: ADMIN / MANAGER / EMPLOYEE only ---
   {

@@ -60,6 +60,26 @@ export class UserManagementComponent implements OnInit {
   // Available roles based on current user
   availableRoles: { value: string; label: string }[] = [];
 
+  // Per-row UI state: which user is currently being edited / saving
+  rowSavingId: number | null = null;
+
+  // Role labels (also used for inline edit dropdown)
+  private readonly ROLE_LABELS: Record<string, string> = {
+    ADMIN: 'Administrator',
+    ORG_MANAGER: 'Organization Manager',
+    ORG_ADMIN: 'Organization Admin',
+    MANAGER: 'Manager',
+    EMPLOYEE: 'Employee',
+  };
+
+  // Mirrors backend _ASSIGNABLE_BY_CALLER; keep in sync.
+  private readonly ASSIGNABLE_BY_CALLER: Record<string, string[]> = {
+    ADMIN:       ['MANAGER', 'EMPLOYEE', 'ORG_MANAGER', 'ORG_ADMIN'],
+    ORG_MANAGER: ['ORG_ADMIN', 'MANAGER', 'EMPLOYEE'],
+    ORG_ADMIN:   ['MANAGER', 'EMPLOYEE'],
+    MANAGER:     ['EMPLOYEE'],
+  };
+
   constructor(
     private authService: AuthService,
     private http: HttpClient,
@@ -108,6 +128,69 @@ export class UserManagementComponent implements OnInit {
       },
       error: (err) => {
         this.deleteError = err.error?.error || 'Failed to delete user';
+      }
+    });
+  }
+
+  // Roles the current caller can assign on `user`'s row.
+  // Returns [] when the caller isn't allowed to manage that row.
+  rolesAssignableTo(user: any): string[] {
+    const callerRole = this.currentUser?.role;
+    if (!callerRole || !user) return [];
+    if (user.id === this.currentUser?.id) return [];
+    const allowed = this.ASSIGNABLE_BY_CALLER[callerRole] || [];
+    if (callerRole !== 'ADMIN' && !allowed.includes(user.role)) return [];
+    return allowed;
+  }
+
+  canEditRole(user: any): boolean {
+    return this.rolesAssignableTo(user).length > 0;
+  }
+
+  canToggleActive(user: any): boolean {
+    if (!this.currentUser || user.id === this.currentUser.id) return false;
+    const callerRole = this.currentUser.role;
+    const allowed = this.ASSIGNABLE_BY_CALLER[callerRole] || [];
+    return callerRole === 'ADMIN' || allowed.includes(user.role);
+  }
+
+  roleLabel(role: string): string {
+    return this.ROLE_LABELS[role] || role;
+  }
+
+  changeRole(user: any, newRole: string): void {
+    if (!newRole || newRole === user.role) return;
+    if (!confirm(`Change ${user.full_name}'s role to ${this.roleLabel(newRole)}?`)) return;
+
+    this.rowSavingId = user.id;
+    this.deleteError = '';
+    this.http.patch<any>(`/api/frontend/org-users/${user.id}/role/`, { role: newRole }).subscribe({
+      next: (res) => {
+        this.rowSavingId = null;
+        if (res?.user?.role) user.role = res.user.role;
+      },
+      error: (err) => {
+        this.rowSavingId = null;
+        this.deleteError = err.error?.error || 'Failed to update role';
+      }
+    });
+  }
+
+  toggleActive(user: any): void {
+    const next = !user.is_active;
+    const verb = next ? 'reactivate' : 'deactivate';
+    if (!confirm(`Are you sure you want to ${verb} ${user.full_name}?`)) return;
+
+    this.rowSavingId = user.id;
+    this.deleteError = '';
+    this.http.patch<any>(`/api/frontend/org-users/${user.id}/active/`, { is_active: next }).subscribe({
+      next: (res) => {
+        this.rowSavingId = null;
+        if (res?.user) user.is_active = res.user.is_active;
+      },
+      error: (err) => {
+        this.rowSavingId = null;
+        this.deleteError = err.error?.error || `Failed to ${verb} user`;
       }
     });
   }

@@ -148,11 +148,12 @@
               <th>Department</th>
               <th>Position</th>
               <th>Role</th>
-              <th *ngIf="currentUser?.role === 'ADMIN'">Actions</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let user of users">
+            <tr *ngFor="let user of users" [class.row-inactive]="!user.is_active">
               <td>
                 <div class="user-name-cell">
                   <div class="avatar">{{ getInitials(user.full_name) }}</div>
@@ -162,12 +163,46 @@
               <td class="email-cell">{{ user.email }}</td>
               <td><span class="emp-id-badge">{{ user.employee_id || '—' }}</span></td>
               <td>{{ user.department_name || '—' }}</td>
-              <td>{{ user.position_name || '—' }}</td>
-              <td><span [class]="getRoleBadgeClass(user.role)">{{ user.role }}</span></td>
-              <td *ngIf="currentUser?.role === 'ADMIN'">
-                <button class="btn-delete"
+              <td>{{ user.position_name || user.position_title || '—' }}</td>
+
+              <!-- Role: editable select for managers, read-only badge otherwise -->
+              <td>
+                <select *ngIf="canEditRole(user); else roleBadge"
+                  class="role-select"
+                  [value]="user.role"
+                  [disabled]="rowSavingId === user.id"
+                  (change)="changeRole(user, $any($event.target).value)">
+                  <option *ngFor="let r of rolesAssignableTo(user)" [value]="r">{{ roleLabel(r) }}</option>
+                  <option *ngIf="!rolesAssignableTo(user).includes(user.role)" [value]="user.role" disabled>
+                    {{ roleLabel(user.role) }}
+                  </option>
+                </select>
+                <ng-template #roleBadge>
+                  <span [class]="getRoleBadgeClass(user.role)">{{ roleLabel(user.role) }}</span>
+                </ng-template>
+              </td>
+
+              <!-- Status -->
+              <td>
+                <span class="status-badge" [class.status-active]="user.is_active" [class.status-inactive]="!user.is_active">
+                  {{ user.is_active ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+
+              <!-- Actions -->
+              <td class="actions-cell">
+                <button *ngIf="canToggleActive(user)"
+                  class="btn-action"
+                  [class.btn-deactivate]="user.is_active"
+                  [class.btn-activate]="!user.is_active"
+                  [disabled]="rowSavingId === user.id"
+                  (click)="toggleActive(user)">
+                  {{ user.is_active ? 'Deactivate' : 'Reactivate' }}
+                </button>
+                <button *ngIf="currentUser?.role === 'ADMIN'"
+                  class="btn-delete"
                   (click)="deleteUser(user)"
-                  [disabled]="user.id === currentUser?.id">
+                  [disabled]="user.id === currentUser?.id || rowSavingId === user.id">
                   Delete
                 </button>
               </td>

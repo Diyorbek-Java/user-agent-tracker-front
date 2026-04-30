@@ -83,4 +83,21 @@ export class AuthService {
       new_password: newPassword
     });
   }
+
+  signupOrganization(data: {
+    organization_name: string;
+    full_name: string;
+    email: string;
+    password: string;
+  }): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.API_URL}/signup-org/`, data).pipe(
+      tap(response => {
+        if (response.token) {
+          localStorage.setItem('token', response.token);
+          localStorage.setItem('currentUser', JSON.stringify(response.user));
+          this.currentUserSubject.next(response.user);
+        }
+      })
+    );
+  }
 }

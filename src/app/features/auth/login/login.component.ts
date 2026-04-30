@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
@@ -15,6 +15,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   loading = false;
   errorMessage = '';
+  infoMessage = '';
   returnUrl = '/dashboard';
 
   constructor(
@@ -30,6 +31,10 @@ export class LoginComponent {
 
     // Get return URL from route parameters or default to '/dashboard'
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
+
+    if (this.route.snapshot.queryParams['reset'] === '1') {
+      this.infoMessage = 'Password reset successful. Please sign in with your new password.';
+    }
   }
 
   onSubmit(): void {

@@ -1,0 +1,99 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h1>Create your organization</h1>
+      <p>Sign up to start tracking productivity for your team.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="form-group">
+        <label for="organization_name">Organization Name</label>
+        <input
+          type="text"
+          id="organization_name"
+          formControlName="organization_name"
+          class="form-control"
+          [class.is-invalid]="organizationName?.invalid && organizationName?.touched"
+          placeholder="Acme Inc."
+        />
+        <div *ngIf="organizationName?.invalid && organizationName?.touched" class="error-message">
+          <span *ngIf="organizationName?.errors?.['required']">Organization name is required</span>
+          <span *ngIf="organizationName?.errors?.['minlength']">Too short</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="full_name">Your Full Name</label>
+        <input
+          type="text"
+          id="full_name"
+          formControlName="full_name"
+          class="form-control"
+          [class.is-invalid]="fullName?.invalid && fullName?.touched"
+          placeholder="Jane Doe"
+        />
+        <div *ngIf="fullName?.invalid && fullName?.touched" class="error-message">
+          <span *ngIf="fullName?.errors?.['required']">Name is required</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Work Email</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          class="form-control"
+          [class.is-invalid]="email?.invalid && email?.touched"
+          placeholder="you@company.com"
+        />
+        <div *ngIf="email?.invalid && email?.touched" class="error-message">
+          <span *ngIf="email?.errors?.['required']">Email is required</span>
+          <span *ngIf="email?.errors?.['email']">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          class="form-control"
+          [class.is-invalid]="password?.invalid && password?.touched"
+          placeholder="At least 8 characters"
+        />
+        <div *ngIf="password?.invalid && password?.touched" class="error-message">
+          <span *ngIf="password?.errors?.['required']">Password is required</span>
+          <span *ngIf="password?.errors?.['minlength']">Must be at least 8 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirm_password">Confirm Password</label>
+        <input
+          type="password"
+          id="confirm_password"
+          formControlName="confirm_password"
+          class="form-control"
+          [class.is-invalid]="(confirmPassword?.invalid && confirmPassword?.touched) || (form.errors?.['mismatch'] && confirmPassword?.touched)"
+          placeholder="Re-enter password"
+        />
+        <div *ngIf="form.errors?.['mismatch'] && confirmPassword?.touched" class="error-message">
+          Passwords do not match
+        </div>
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-error">{{ errorMessage }}</div>
+
+      <button type="submit" class="btn-primary" [disabled]="loading || form.invalid">
+        <span *ngIf="!loading">Create organization</span>
+        <span *ngIf="loading">Creating…</span>
+      </button>
+    </form>
+
+    <div class="login-footer">
+      <p>Already have an account? <a routerLink="/auth/login">Sign in</a></p>
+    </div>
+  </div>
+</div>
